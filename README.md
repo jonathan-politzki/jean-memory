@@ -1,4 +1,5 @@
 # jean-memory
+
 MCP Personal Memory Service
 1. Overview & Vision
 This project aims to create a cloud-hosted Personal Memory Service designed to provide long-term, context-aware memory capabilities to AI models and agents via the Model Context Protocol (MCP).
