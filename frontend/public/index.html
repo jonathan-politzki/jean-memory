@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JEAN - Personal Memory Layer</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Google Sign-In API -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>JEAN</h1>
+            <p>Personal Memory Layer via Model Context Protocol</p>
+        </header>
+
+        <main>
+            <section class="welcome">
+                <h2>Welcome to JEAN</h2>
+                <p>JEAN enhances AI assistants like Claude Desktop or Cursor by providing your personal context through the Model Context Protocol (MCP).</p>
+                <p>Sign in with Google to get started.</p>
+            </section>
+
+            <section class="auth">
+                <div id="googleSignInButton"></div>
+                <div id="errorMessage" class="error-message"></div>
+            </section>
+
+            <section class="info">
+                <h3>How It Works</h3>
+                <ol>
+                    <li>Sign in with your Google account</li>
+                    <li>Get your unique MCP configuration</li>
+                    <li>Add the configuration to your Claude Desktop or Cursor setup</li>
+                    <li>Enjoy personalized context in your AI assistant</li>
+                </ol>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2023 JEAN - Personal Memory Layer</p>
+        </footer>
+    </div>
+
+    <script>
+        // Google Sign-In configuration
+        function handleGoogleSignIn() {
+            // Google OAuth client configuration
+            // NOTE: You need to replace CLIENT_ID with your actual Google OAuth client ID
+            const googleClientId = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+            
+            google.accounts.id.initialize({
+                client_id: googleClientId,
+                callback: handleCredentialResponse,
+                auto_select: false,
+                cancel_on_tap_outside: true
+            });
+            
+            google.accounts.id.renderButton(
+                document.getElementById('googleSignInButton'),
+                { theme: 'outline', size: 'large', text: 'signin_with', shape: 'rectangular' }
+            );
+        }
+
+        // Handle the Google Sign-In response
+        function handleCredentialResponse(response) {
+            // The response contains a credential with an ID token
+            const token = response.credential;
+            
+            // Redirect to the backend auth endpoint with the token
+            window.location.href = `/auth/google?token=${token}`;
+        }
+
+        // Initialize when the page loads
+        window.onload = function() {
+            handleGoogleSignIn();
+        };
+    </script>
+</body>
+</html> 

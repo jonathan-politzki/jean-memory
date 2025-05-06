@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JEAN - Your MCP Configuration</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>JEAN</h1>
+            <p>Personal Memory Layer via Model Context Protocol</p>
+        </header>
+
+        <main>
+            <section class="success">
+                <h2>Authentication Successful!</h2>
+                <p>Your JEAN account has been set up. You can now use your MCP configuration with Claude Desktop or Cursor.</p>
+            </section>
+
+            <section class="mcp-config">
+                <h3>Your MCP Configuration</h3>
+                <div class="config-card">
+                    <p>Copy and paste this configuration into your AI assistant's settings:</p>
+                    <pre id="mcpConfig">Loading configuration...</pre>
+                    <button id="copyButton" onclick="copyConfig()">Copy Configuration</button>
+                    <span id="copyMessage" class="copy-message"></span>
+                </div>
+            </section>
+
+            <section class="instructions">
+                <h3>How to Use Your Configuration</h3>
+                <div class="instruction-card">
+                    <h4>Claude Desktop</h4>
+                    <ol>
+                        <li>Open Claude Desktop</li>
+                        <li>Go to Settings > Context Servers</li>
+                        <li>Click "Add Context Server"</li>
+                        <li>Paste your configuration</li>
+                        <li>Save and Restart Claude</li>
+                    </ol>
+                </div>
+                <div class="instruction-card">
+                    <h4>Cursor</h4>
+                    <ol>
+                        <li>Open Cursor</li>
+                        <li>Go to Settings > AI > Context Sources</li>
+                        <li>Click "Add MCP Server"</li>
+                        <li>Paste your configuration</li>
+                        <li>Save and Restart Cursor</li>
+                    </ol>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2023 JEAN - Personal Memory Layer</p>
+        </footer>
+    </div>
+
+    <script>
+        // Parse URL parameters
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                userId: params.get('user_id'),
+                apiKey: params.get('api_key')
+            };
+        }
+
+        // Format MCP config as JSON
+        function formatMcpConfig(apiKey) {
+            const config = {
+                mcp_server_url: window.location.origin.replace('3000', '8000') + '/mcp',
+                api_key: apiKey
+            };
+            return JSON.stringify(config, null, 2);
+        }
+
+        // Copy configuration to clipboard
+        function copyConfig() {
+            const configElement = document.getElementById('mcpConfig');
+            const textArea = document.createElement('textarea');
+            textArea.value = configElement.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            const message = document.getElementById('copyMessage');
+            message.textContent = 'Copied to clipboard!';
+            setTimeout(() => {
+                message.textContent = '';
+            }, 2000);
+        }
+
+        // Initialize when the page loads
+        window.onload = function() {
+            const { userId, apiKey } = getUrlParams();
+            if (!userId || !apiKey) {
+                window.location.href = '/';
+                return;
+            }
+            
+            // Display the MCP configuration
+            const configElement = document.getElementById('mcpConfig');
+            configElement.textContent = formatMcpConfig(apiKey);
+        };
+    </script>
+</body>
+</html> 

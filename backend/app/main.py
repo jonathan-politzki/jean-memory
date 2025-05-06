@@ -48,12 +48,12 @@ async def shutdown_event():
     logger.info("Application shutdown sequence finished (without DB close).")
 
 if __name__ == "__main__":
-    logger.info(f"Starting server with Uvicorn on host 0.0.0.0 port 8000")
+    logger.info(f"Starting server with Uvicorn on host 0.0.0.0 port 8080")
     # Note: Uvicorn handles the asyncio event loop when run this way.
     uvicorn.run(
         "app.main:app", # Reference the app object created in this file
         host="0.0.0.0",
-        port=8000,
+        port=8080,
         reload=True # Enable reload for development (requires watchfiles)
         # Consider adding log_level="info" or other uvicorn settings
     ) 

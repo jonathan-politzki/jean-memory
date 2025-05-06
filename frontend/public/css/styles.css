@@ -1,0 +1,173 @@
+/* Global styles */
+:root {
+    --primary-color: #4285f4;
+    --secondary-color: #34a853;
+    --background-color: #f5f5f5;
+    --card-background: #ffffff;
+    --text-primary: #333333;
+    --text-secondary: #666666;
+    --border-radius: 8px;
+    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header styles */
+header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 10px;
+}
+
+/* Section styles */
+section {
+    margin-bottom: 40px;
+    background-color: var(--card-background);
+    padding: 25px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+section h2 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+section h3 {
+    color: var(--secondary-color);
+    margin-bottom: 15px;
+}
+
+section p {
+    margin-bottom: 15px;
+}
+
+/* Auth section */
+.auth {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px;
+}
+
+.error-message {
+    color: #d93025;
+    margin-top: 15px;
+    font-weight: bold;
+}
+
+/* Info section */
+.info ol {
+    padding-left: 20px;
+    margin-bottom: 15px;
+}
+
+.info li {
+    margin-bottom: 10px;
+}
+
+/* MCP Config section */
+.config-card {
+    background-color: rgba(66, 133, 244, 0.05);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--primary-color);
+}
+
+pre#mcpConfig {
+    background-color: #f0f0f0;
+    padding: 15px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 15px 0;
+    font-family: 'Courier New', Courier, monospace;
+    border: 1px solid #ddd;
+}
+
+button#copyButton {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+button#copyButton:hover {
+    background-color: #3367d6;
+}
+
+.copy-message {
+    margin-left: 10px;
+    color: var(--secondary-color);
+    font-weight: bold;
+}
+
+/* Instructions section */
+.instructions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.instruction-card {
+    padding: 20px;
+    border-radius: var(--border-radius);
+    background-color: rgba(52, 168, 83, 0.05);
+    border: 1px solid var(--secondary-color);
+}
+
+.instruction-card h4 {
+    margin-bottom: 15px;
+    color: var(--secondary-color);
+}
+
+/* Footer styles */
+footer {
+    text-align: center;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    color: var(--text-secondary);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .instructions {
+        grid-template-columns: 1fr;
+    }
+    
+    section {
+        padding: 15px;
+    }
+    
+    pre#mcpConfig {
+        font-size: 14px;
+    }
+} 

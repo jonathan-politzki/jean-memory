@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JEAN - CORS Test</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>JEAN - CORS Test</h1>
+            <p>Simple test for Cross-Origin Resource Sharing</p>
+        </header>
+
+        <main>
+            <section class="cors-test">
+                <h2>CORS Test</h2>
+                <p>This page tests whether the frontend can make requests to the backend.</p>
+                
+                <div class="test-buttons">
+                    <button id="healthButton">Test Health Endpoint</button>
+                    <button id="mcpButton">Test MCP Endpoint</button>
+                    <button id="corsTestButton">Test CORS-specific Endpoint</button>
+                </div>
+                
+                <div class="test-results">
+                    <h3>Results:</h3>
+                    <pre id="results">No tests run yet.</pre>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2023 JEAN - Personal Memory Layer</p>
+        </footer>
+    </div>
+
+    <script>
+        // DOM elements
+        const resultsElement = document.getElementById('results');
+        const healthButton = document.getElementById('healthButton');
+        const mcpButton = document.getElementById('mcpButton');
+        const corsTestButton = document.getElementById('corsTestButton');
+        
+        // Backend URL (should match the backend service)
+        const backendUrl = 'http://localhost:8080';
+        
+        // Log results to UI
+        function logResult(message) {
+            resultsElement.textContent += '\n' + message;
+        }
+        
+        // Clear results
+        function clearResults() {
+            resultsElement.textContent = '';
+        }
+        
+        // Test the health endpoint
+        healthButton.addEventListener('click', async () => {
+            clearResults();
+            logResult('Testing health endpoint...');
+            
+            try {
+                const response = await fetch(`${backendUrl}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    logResult('✅ CORS Success: Health endpoint responded');
+                    logResult(`Response: ${JSON.stringify(data)}`);
+                } else {
+                    logResult(`❌ Error: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                logResult(`❌ CORS Error: ${error.message}`);
+                logResult('This likely means CORS is not properly configured.');
+            }
+        });
+        
+        // Test the dedicated CORS test endpoint
+        corsTestButton.addEventListener('click', async () => {
+            clearResults();
+            logResult('Testing CORS-specific endpoint...');
+            
+            try {
+                const response = await fetch(`${backendUrl}/cors-test`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    logResult('✅ CORS Success: CORS test endpoint responded');
+                    logResult(`Response: ${JSON.stringify(data)}`);
+                    logResult('CORS is correctly configured between the frontend and backend!');
+                } else {
+                    logResult(`❌ Error: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                logResult(`❌ CORS Error: ${error.message}`);
+                logResult('This likely means CORS is not properly configured.');
+            }
+        });
+        
+        // Test the MCP endpoint
+        mcpButton.addEventListener('click', async () => {
+            clearResults();
+            logResult('Testing MCP endpoint...');
+            
+            const payload = {
+                method: 'retrieve',
+                params: {
+                    query: 'CORS test query'
+                }
+            };
+            
+            try {
+                const response = await fetch(`${backendUrl}/mcp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': 'TEST_API_KEY'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    logResult('✅ CORS Success: MCP endpoint responded');
+                    logResult(`Response: ${JSON.stringify(data)}`);
+                } else {
+                    logResult(`❌ Error: ${response.status} ${response.statusText}`);
+                }
+            } catch (error) {
+                logResult(`❌ CORS Error: ${error.message}`);
+                logResult('This likely means CORS is not properly configured.');
+            }
+        });
+    </script>
+</body>
+</html> 

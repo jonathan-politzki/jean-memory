@@ -1,24 +1,67 @@
 # JEAN Frontend
 
-This directory will contain the frontend application for JEAN.
+This directory contains the frontend application for JEAN.
 
-## Core Requirements
+## Overview
 
-The frontend should be extremely simple and focused on the following core user flow:
+The frontend serves a simple purpose - to authenticate users with Google and provide them with their MCP configuration URL for use with Claude Desktop, Cursor, or other MCP-compatible clients.
 
-1.  **Sign In:** Allow users to sign in securely using Google Authentication (OAuth).
-2.  **Profile Creation (Minimal):** Upon first successful sign-in, create a basic user profile in the backend. This might just be storing the user's Google ID and email.
-3.  **Display MCP Configuration:** Immediately display the user-specific Model Context Protocol (MCP) server URL. This URL is the primary artifact the user needs to integrate JEAN with their client application (e.g., Claude Desktop, Cursor).
+## Components
 
-## Design Philosophy
+### Server
 
--   **Minimalism:** Avoid complexity. The *only* goal is user authentication and providing the configuration URL.
--   **Clarity:** Make it obvious what the user needs to do (sign in) and what they need to copy (the URL).
--   **Technology:** To be decided, but prioritize simplicity and speed of development (e.g., static HTML with JavaScript, a lightweight framework like SvelteKit or basic React).
+- `server.js` - Express server that serves static files and handles Google OAuth callback
+- `package.json` - Node.js package configuration
+
+### User Interface
+
+- `/public/index.html` - Landing page with Google Sign-In
+- `/public/profile.html` - Profile page showing the MCP configuration
+- `/public/css/styles.css` - Styling for all pages
+
+## Flow
+
+1. User visits the site and clicks "Sign in with Google"
+2. After authentication, they are redirected to the profile page
+3. The profile page displays their unique MCP configuration
+4. User copies this configuration to their Claude Desktop or Cursor settings
+
+## Development
+
+To run the frontend locally:
+
+```bash
+# Install dependencies
+npm install
+
+# Start the development server
+npm run dev
+```
+
+## Docker Deployment
+
+The frontend is containerized and can be run with Docker:
+
+```bash
+# Build the image
+docker build -t jean-frontend .
+
+# Run the container
+docker run -p 3000:3000 -e BACKEND_URL=http://localhost:8000 jean-frontend
+```
+
+## Configuration
+
+The frontend is configured via environment variables:
+
+- `PORT` - Port to run the server on (default: 3000)
+- `BACKEND_URL` - URL of the JEAN backend (default: http://localhost:8000)
+
+Google OAuth requires configuring the OAuth client ID in `public/index.html`.
 
 ## Next Steps
 
--   Set up Google OAuth 2.0 credentials.
--   Implement the Google Sign-In button.
--   Create the callback handler to verify the token and communicate with the JEAN backend API to create/retrieve the user profile.
--   Display the MCP URL provided by the backend upon successful login. 
+1. Complete the Google OAuth integration by filling in the client ID
+2. Add user profile management functionality if needed
+3. Enhance the UI with additional styling and features
+4. Add support for MCP configuration testing 

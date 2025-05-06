@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, HTTPException, Depends
 import logging
 from typing import Any, Optional
+from fastapi.middleware.cors import CORSMiddleware  # Add CORS middleware
 
 # Use absolute imports from the 'backend' root directory
 from .config import settings
@@ -21,8 +22,20 @@ def create_app():
         title="JEAN MCP Server",
         description="JEAN Personal Memory Layer via Model Context Protocol.",
         version="0.1.0",
-        dependencies=[Depends(verify_api_key)] # Apply API key verification globally
     )
+    
+    # Add CORS middleware BEFORE adding dependencies
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Allow all origins for testing
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "OPTIONS", "DELETE", "PUT", "PATCH"],
+        allow_headers=["*"],  # Allow all headers including X-API-Key
+        expose_headers=["*"],
+    )
+    
+    # Add global dependency AFTER middleware
+    app.dependency_overrides[verify_api_key] = verify_api_key
 
     # --- TEMPORARY: Skip real DB/Gemini initialization for testing ---
     app.state.db = None # No database connection
@@ -39,6 +52,12 @@ def create_app():
         """Simple health check endpoint."""
         # In the future, could add checks for DB and Gemini connectivity
         return {"status": "ok"}
+
+    @app.options("/cors-test", tags=["System"])
+    @app.get("/cors-test", tags=["System"])
+    async def cors_test():
+        """Endpoint specifically for testing CORS."""
+        return {"cors": "enabled", "status": "ok"}
 
     @app.post("/mcp",
               response_model=MCPResponse,

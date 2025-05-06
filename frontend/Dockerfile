@@ -2,16 +2,18 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# This is a placeholder Dockerfile for the frontend
-# It will be updated once the frontend implementation is ready
+# Copy package.json and install dependencies
+COPY package.json ./
+RUN npm install
 
-# For now, just create a simple HTTP server to serve a placeholder page
-RUN npm install -g http-server
-COPY . /app
+# Copy the rest of the application
+COPY . .
 
-# Create a simple placeholder HTML page
-RUN echo '<html><body><h1>JEAN Frontend</h1><p>This is a placeholder. Frontend implementation coming soon.</p></body></html>' > index.html
+# Create a .env file with default settings (will be overridden by environment variables)
+RUN echo "PORT=3000\nBACKEND_URL=http://backend:8000" > .env
 
+# Expose the port the app runs on
 EXPOSE 3000
 
-CMD ["http-server", "-p", "3000"] 
+# Command to run the application
+CMD ["node", "server.js"] 
