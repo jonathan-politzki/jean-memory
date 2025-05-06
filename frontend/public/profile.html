@@ -169,7 +169,7 @@
                 document.getElementById('backendStatus').textContent = healthData.status === 'ok' ? 'Connected' : 'Disconnected';
                 
                 // Check MCP endpoint (via backend proxy)
-                const backendUrl = 'http://localhost:8080';
+                const backendUrl = 'http://localhost:8081';
                 const mcpResponse = await fetch(`${backendUrl}/health`, { mode: 'cors' });
                 document.getElementById('mcpStatus').textContent = mcpResponse.ok ? 'Available' : 'Unavailable';
                 
@@ -206,8 +206,42 @@
                     if (sourceName === 'Create Note') {
                         const note = prompt('Enter your note:');
                         if (note) {
-                            alert('Note created! This will be stored in your personal memory.');
-                            // Here we would normally send this to the backend
+                            // Get the current API key from the URL parameters
+                            const params = getUrlParams();
+                            const apiKey = params.api_key;
+                            
+                            // Send the note to the backend MCP endpoint
+                            fetch('http://localhost:8081/mcp', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-API-Key': apiKey
+                                },
+                                body: JSON.stringify({
+                                    method: "store",
+                                    params: {
+                                        context_type: "notes",
+                                        content: {
+                                            title: "Quick Note",
+                                            body: note,
+                                            created_at: new Date().toISOString()
+                                        },
+                                        source_identifier: "quick_note_" + Date.now()
+                                    }
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.result && data.result.type === "success") {
+                                    alert('Note created and stored in your personal memory!');
+                                } else {
+                                    alert('Error storing note: ' + JSON.stringify(data.error || "Unknown error"));
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error storing note:', error);
+                                alert('Failed to store note. See console for details.');
+                            });
                         }
                     }
                 });
