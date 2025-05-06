@@ -2,13 +2,16 @@ from fastapi import FastAPI, Request, HTTPException, Depends
 import logging
 from typing import Any, Optional
 from fastapi.middleware.cors import CORSMiddleware  # Add CORS middleware
+from fastapi.responses import RedirectResponse, HTMLResponse # Import RedirectResponse and HTMLResponse
 
 # Use absolute imports from the 'backend' root directory
 from .config import settings
 from .models import MCPRequest, MCPResponse, MCPResult, MCPStoreParams, MCPRetrieveParams
 from .middleware import verify_api_key
+# Import the database singleton instead of the class
+import database
+from database.context_storage import ContextDatabase  # Still import for type hints
 from routers.context_router import ContextRouter # Changed from ..routers
-from database.context_storage import ContextDatabase # Changed from ..database
 from services.gemini_api import GeminiAPI # Changed from ..services
 
 # --- Logging Setup ---
@@ -46,9 +49,9 @@ def create_app():
         if settings.database_url:
             logger.info(f"Initializing database connection to: {settings.database_url.replace('jean:jean_password', 'jean:****')}")
             try:
-                db = ContextDatabase(settings.database_url)
-                await db.initialize()
-                app.state.db = db
+                # Use the database singleton instead of creating a new instance
+                db = await database.initialize_db(settings.database_url)
+                app.state.db = db  # Store singleton reference in app state
                 logger.info("Database connection established successfully")
             except Exception as e:
                 logger.error(f"Failed to initialize database: {e}")
@@ -71,23 +74,25 @@ def create_app():
             gemini_api=app.state.gemini_api
         )
         
-        logger.info("Application startup complete.")
+        logger.info("Application startup sequence finished.")
 
     # Cleanup on shutdown
     @app.on_event("shutdown")
     async def shutdown_db_client():
         logger.info("Shutting down application...")
-        if hasattr(app.state, "db") and app.state.db is not None:
-            logger.info("Closing database connection...")
-            await app.state.db.close()
+        # Using the singleton close method instead of directly closing
+        await database.close_db()
+        logger.info("Database connection closed.")
 
     # --- API Endpoints ---
     @app.get("/health", tags=["System"])
     async def health_check():
         """Simple health check endpoint."""
+        # Use the singleton to check database status
+        db = database.get_db()
         health_status = {
             "status": "ok",
-            "db_connected": hasattr(app.state, "db") and app.state.db is not None
+            "db_connected": db is not None and db.pool is not None
         }
         return health_status
 
@@ -100,7 +105,8 @@ def create_app():
     @app.post("/mcp",
               response_model=MCPResponse,
               tags=["MCP"],
-              summary="Main MCP Endpoint")
+              summary="Main MCP Endpoint",
+              dependencies=[Depends(verify_api_key)])
     async def mcp_endpoint(request: Request, mcp_request: MCPRequest) -> MCPResponse:
         """Handles MCP store and retrieve operations."""
         user_id = getattr(request.state, 'user_id', None)
@@ -169,9 +175,9 @@ def create_app():
         import httpx
         import json
         from jwt.utils import base64url_decode
-        
+
         logger.info(f"Received Google OAuth callback with code: {code[:10]}...")
-        
+
         # For our simplified flow, we're receiving an ID token directly
         # In a full OAuth flow, we'd exchange an authorization code for tokens
         try:
@@ -181,60 +187,69 @@ def create_app():
             token_parts = code.split('.')
             if len(token_parts) != 3:
                 logger.error("Invalid token format")
-                return {"message": "Authentication failed", "error": "Invalid token format"}
-                
+                # Redirect to an error page or login page
+                return RedirectResponse(url="/?error=auth_failed")
+
             # Decode the payload (middle part of JWT)
             padded = token_parts[1] + '=' * (4 - len(token_parts[1]) % 4)
             try:
                 payload = json.loads(base64url_decode(padded))
                 logger.info(f"Successfully parsed token payload")
-                
+
                 # Extract user information
                 google_id = payload.get('sub')
                 email = payload.get('email')
-                name = payload.get('name')
-                tenant_id = payload.get('hd', 'default')  # Use domain as tenant or default
-                
+                name = payload.get('name') # Keep name for potential future use
+                tenant_id = payload.get('hd', 'default') # Use domain as tenant or default
+
                 logger.info(f"Extracted user info - Google ID: {google_id}, Email: {email}, Domain: {tenant_id}")
-                
+
                 if not google_id or not email:
                     logger.error("Missing required user information in token")
-                    return {"message": "Authentication failed", "error": "Missing user information"}
-                    
+                    return RedirectResponse(url="/?error=auth_failed")
+
             except Exception as e:
                 logger.error(f"Error parsing token payload: {e}")
-                return {"message": "Authentication failed", "error": "Token parsing error"}
-        
+                return RedirectResponse(url="/?error=auth_failed")
+
             # Store or update user in database
             db: Optional[ContextDatabase] = request.app.state.db
+            user_id = None
+            api_key = None # Initialize api_key
             if db:
                 try:
-                    user_id, api_key = await db.create_or_get_user(tenant_id, google_id, email)
-                    api_key_display = api_key[:5]+"..."
+                    # This call returns the CORRECT key (existing or new)
+                    user_id_from_db, api_key_from_db = await db.create_or_get_user(tenant_id, google_id, email)
+                    # We need to assign these returned values
+                    user_id = user_id_from_db
+                    api_key = api_key_from_db
                     logger.info(f"User authenticated: ID={user_id}, Email={email}")
                 except Exception as e:
                     logger.error(f"Database error during user creation: {e}")
-                    user_id = 999  # Fallback to placeholder
-                    api_key_display = "TEST_API_KEY"
+                    # Redirect to an error page or login page if DB fails
+                    return RedirectResponse(url="/?error=db_error")
             else:
-                logger.warning("DB not available, using placeholder user data.")
-                user_id = 999  # Placeholder
-                api_key_display = "TEST_API_KEY"
-            
-            # In a real app, we'd redirect to the frontend with user info
-            return {
-                "message": "Authentication successful", 
-                "user_id": user_id, 
-                "api_key": api_key_display,
-                "user_info": {
-                    "name": name,
-                    "email": email
-                }
-            }
-            
+                logger.warning("DB not available, cannot authenticate user.")
+                # Redirect to an error page or login page if DB is unavailable
+                return RedirectResponse(url="/?error=db_unavailable")
+
+            # Redirect to the profile page with user_id and the full api_key
+            if user_id is not None and api_key is not None:
+                # Direct redirect to frontend with clear parameter names to avoid encoding issues
+                frontend_url = "http://localhost:3005"
+                profile_url = f"{frontend_url}/profile.html?jean_user_id={user_id}&jean_api_key={api_key}"
+                logger.info(f"Redirecting user to frontend: {profile_url.replace(api_key, api_key[:5]+'...')}")
+                return RedirectResponse(url=profile_url)
+            else:
+                # Handle case where user_id or api_key couldn't be retrieved
+                logger.error("Failed to retrieve user_id or api_key after authentication.")
+                return RedirectResponse(url="/?error=auth_failed")
+
+
         except Exception as e:
             logger.exception(f"Error during authentication: {e}")
-            return {"message": "Authentication failed", "error": str(e)}
+            # Redirect to an error page or login page on general failure
+            return RedirectResponse(url="/?error=auth_failed")
 
     return app
 

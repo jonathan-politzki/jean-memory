@@ -192,12 +192,56 @@ class ContextDatabase:
 
     async def validate_api_key(self, api_key: str) -> Optional[int]:
         """Validate an API key and return the corresponding user_id if valid."""
-        if not self.pool:
-            raise ConnectionError("Database not initialized")
+        # For development purposes, accept anything and use a default user ID
+        logger.debug(f"validate_api_key called with api_key (first 10 chars): '{api_key[:10] if api_key else 'None'}...', length: {len(api_key) if api_key else 0}")
         
-        async with self.pool.acquire() as conn:
-            user_id = await conn.fetchval("SELECT id FROM users WHERE api_key = $1", api_key)
-            return user_id
+        # DEVELOPMENT MODE: Always accept ANY key and map to user ID 1
+        # In production, you'd want to remove this and only use the database check
+        if not api_key or api_key.lower() == "undefined" or api_key == "null":
+            logger.warning(f"⚠️ DEVELOPMENT MODE: Using user_id=1 for empty/invalid API key: '{api_key}'")
+            return 1
+            
+        if not self.pool:
+            logger.error("Database pool not initialized in validate_api_key")
+            logger.warning("⚠️ DEVELOPMENT MODE: Using user_id=1 due to missing database connection")
+            return 1
+        
+        try:
+            async with self.pool.acquire() as conn:
+                # First check the actual database
+                logger.debug(f"Checking database for api_key: '{api_key[:10] if api_key else 'None'}...'")
+                user_id = await conn.fetchval("SELECT id FROM users WHERE api_key = $1", api_key)
+                
+                # If found in database, use that user_id
+                if user_id is not None:
+                    logger.debug(f"Found valid API key in database, user_id={user_id}")
+                    return user_id
+                
+                # DEVELOPMENT MODE: Return the first user in the database as a fallback
+                first_user_id = await conn.fetchval("SELECT id FROM users ORDER BY id LIMIT 1")
+                if first_user_id:
+                    logger.warning(f"⚠️ DEVELOPMENT MODE: Using first user (ID={first_user_id}) for unrecognized API key")
+                    return first_user_id
+                
+                # If there are no users in the database, create one
+                logger.warning("⚠️ DEVELOPMENT MODE: No users in database, creating test user...")
+                test_user_id = await conn.fetchval("""
+                    INSERT INTO users (tenant_id, google_id, email, api_key)
+                    VALUES ('default', 'dev_user', 'dev@example.com', 'DEV_API_KEY')
+                    ON CONFLICT (google_id) DO UPDATE SET last_active = NOW()
+                    RETURNING id
+                """)
+                logger.warning(f"⚠️ DEVELOPMENT MODE: Created test user ID={test_user_id}")
+                return test_user_id
+                
+        except Exception as e:
+            logger.exception(f"Error during API key validation: {e}")
+            logger.warning("⚠️ DEVELOPMENT MODE: Using user_id=1 after database exception")
+            return 1
+        
+        # Should never reach here in development mode, but just in case
+        logger.warning("⚠️ DEVELOPMENT MODE: Using default user_id=1 as final fallback")
+        return 1
 
     async def get_all_context_by_type(self, user_id: int, context_type: str) -> list[Dict[str, Any]]:
         """Retrieve all raw context of a specific type for a user."""

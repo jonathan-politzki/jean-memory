@@ -74,10 +74,10 @@
                 </div>
                 
                 <!-- Add Note -->
-                <div class="source-card active" id="note-source">
+                <div class="source-card" id="note-source">
                     <div class="source-icon">✏️</div>
                     <div class="source-name">Create Note</div>
-                    <div class="source-status status-connected">Available</div>
+                    <div class="source-status">Available</div>
                 </div>
             </div>
         </div>
@@ -107,16 +107,30 @@
                 params[key] = value;
             }
             
+            console.log("URL parameters extracted:", { 
+                userId: params.jean_user_id, 
+                apiKeyFound: !!params.jean_api_key,
+                apiKeyLength: params.jean_api_key ? params.jean_api_key.length : 0,
+                apiKeyPrefix: params.jean_api_key ? params.jean_api_key.substring(0, 10) + '...' : 'none'
+            });
+            
             return params;
         }
         
         // Initialize the dashboard
         async function initDashboard() {
             const params = getUrlParams();
-            const userId = params.user_id;
-            const apiKey = params.api_key || 'TEST_API_KEY';
+            const userId = params.jean_user_id || params.user_id; // Try both parameter names
+            const apiKey = params.jean_api_key || params.api_key || 'TEST_API_KEY'; // Try both parameter names
+            
+            console.log("Dashboard initialized with:", { 
+                userId, 
+                apiKeyPrefix: apiKey ? apiKey.substring(0, 10) + '...' : 'none',
+                apiKeyLength: apiKey ? apiKey.length : 0
+            });
             
             if (!userId) {
+                console.error("No user ID found in URL parameters, redirecting to login");
                 // Redirect to the login page if no user ID is found
                 window.location.href = '/';
                 return;
@@ -157,7 +171,7 @@
             checkSystemStatus();
             
             // Set up context source card clicks
-            setupSourceCards();
+            setupSourceCards(userId, apiKey);
         }
         
         // Check system status
@@ -169,7 +183,7 @@
                 document.getElementById('backendStatus').textContent = healthData.status === 'ok' ? 'Connected' : 'Disconnected';
                 
                 // Check MCP endpoint (via backend proxy)
-                const backendUrl = 'http://localhost:8081';
+                const backendUrl = 'http://localhost:8080';
                 const mcpResponse = await fetch(`${backendUrl}/health`, { mode: 'cors' });
                 document.getElementById('mcpStatus').textContent = mcpResponse.ok ? 'Available' : 'Unavailable';
                 
@@ -183,7 +197,7 @@
         }
         
         // Set up context source cards
-        function setupSourceCards() {
+        function setupSourceCards(userId, apiKey) {
             const sourceCards = document.querySelectorAll('.source-card');
             
             sourceCards.forEach(card => {
@@ -206,16 +220,18 @@
                     if (sourceName === 'Create Note') {
                         const note = prompt('Enter your note:');
                         if (note) {
-                            // Get the current API key from the URL parameters
-                            const params = getUrlParams();
-                            const apiKey = params.api_key;
+                            console.log("Creating note with API key:", {
+                                apiKeyPrefix: apiKey ? apiKey.substring(0, 10) + '...' : 'none',
+                                apiKeyLength: apiKey ? apiKey.length : 0
+                            });
                             
                             // Send the note to the backend MCP endpoint
-                            fetch('http://localhost:8081/mcp', {
+                            fetch('http://localhost:8080/mcp', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
-                                    'X-API-Key': apiKey
+                                    'Authorization': `Bearer ${apiKey}`,
+                                    'x-api-key': apiKey
                                 },
                                 body: JSON.stringify({
                                     method: "store",
@@ -230,8 +246,12 @@
                                     }
                                 })
                             })
-                            .then(response => response.json())
+                            .then(response => {
+                                console.log("Response status:", response.status);
+                                return response.json();
+                            })
                             .then(data => {
+                                console.log("MCP response data:", data);
                                 if (data.result && data.result.type === "success") {
                                     alert('Note created and stored in your personal memory!');
                                 } else {
