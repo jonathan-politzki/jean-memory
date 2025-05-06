@@ -14,6 +14,9 @@ RUN poetry config virtualenvs.create false
 # Install dependencies
 RUN poetry install --no-interaction --no-ansi
 
+# Explicitly install MCP SDK
+RUN pip install "mcp[cli]>=1.6.0"
+
 # Copy application code
 COPY . /app/
 

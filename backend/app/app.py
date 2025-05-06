@@ -237,8 +237,9 @@ def create_app():
             if user_id is not None and api_key is not None:
                 # Direct redirect to frontend with clear parameter names to avoid encoding issues
                 frontend_url = "http://localhost:3005"
-                profile_url = f"{frontend_url}/profile.html?jean_user_id={user_id}&jean_api_key={api_key}"
-                logger.info(f"Redirecting user to frontend: {profile_url.replace(api_key, api_key[:5]+'...')}")
+                # Redirect to the MCP config page instead of profile.html
+                profile_url = f"{frontend_url}/mcp-config.html?jean_user_id={user_id}&jean_api_key={api_key}"
+                logger.info(f"Redirecting user to frontend MCP config: {profile_url.replace(api_key, api_key[:5]+'...')}")
                 return RedirectResponse(url=profile_url)
             else:
                 # Handle case where user_id or api_key couldn't be retrieved
