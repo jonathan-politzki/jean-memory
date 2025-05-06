@@ -33,8 +33,8 @@ app.get('/auth/google/callback', async (req, res) => {
     // Get user data from backend response
     const userData = response.data;
 
-    // Redirect to the profile page with user data
-    res.redirect(`/profile.html?user_id=${userData.user_id}&api_key=${userData.api_key}`);
+    // Redirect to the profile page with user data using consistent parameter names
+    res.redirect(`/profile.html?jean_user_id=${userData.user_id}&jean_api_key=${userData.api_key}`);
   } catch (error) {
     console.error('Auth callback error:', error);
     res.status(500).send('Authentication failed. Please try again.');
