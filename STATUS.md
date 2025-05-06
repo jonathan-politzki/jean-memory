@@ -5,7 +5,7 @@
 - ✅ **Authentication**: Google OAuth integration working properly, including correct parameter passing to frontend.
 - ✅ **CORS & API Communication**: Frontend-backend communication properly configured
 - ✅ **Containerization**: Full application (frontend, backend, postgres, redis) successfully containerized with Docker Compose for consistent builds and execution.
-- ✅ **MCP Endpoint**: Basic Model Context Protocol implementation for retrieve/store
+- ✅ **MCP Endpoint**: Full Model Context Protocol implementation with SDK, tools, and resources
 - ✅ **Context Router**: Structure for routing different context types
 - ✅ **Database Integration**: PostgreSQL connection and schema established
 - ✅ **Note Storage**: Notes can be created and stored in the database
@@ -17,13 +17,15 @@
 3. Backend server (port 8000 on host, internally 8000) provides API endpoints from its container.
 4. User logs in with Google OAuth.
 5. Backend authenticates and redirects to frontend with correct user credentials in URL.
-6. Dashboard shows MCP config and available context sources.
+6. MCP configuration page shows Claude Desktop and IDE integration settings.
 7. Notes can be created and stored in the PostgreSQL database
+8. MCP server enables AI assistants to directly access user data through standardized protocol
 
 ## Architecture Improvements
 - ✅ **Database Singleton Pattern**: Ensures all app components use the same database connection
 - ✅ **API Key Validation**: Robust validation with development mode fallbacks
 - ✅ **Error Handling**: Graceful error handling and logging throughout the application
+- ✅ **MCP Integration**: Full Model Context Protocol implementation with proper tools and resources
 
 ## Next Steps
 
@@ -33,9 +35,10 @@
 - Add vector embeddings for improved context search
 
 ### 2. Full MCP Compliance
-- Adapt to official MCP SDK
-- Add support for both stdio and HTTP transports
-- Implement proper prompt templates
+- ✅ Implement using official MCP SDK
+- ✅ Add support for HTTP transport
+- ✅ Implement proper authentication
+- ✅ Support for MCP tools, resources, and prompts
 
 ### 3. Security & Production Readiness
 - Remove development mode fallbacks for production
@@ -64,6 +67,21 @@ docker-compose up # (handles frontend, go to http://localhost:3005)
 
 ## Authentication Flow
 The application now supports Google authentication with proper API key handling. After authentication, user ID and API key are correctly passed to the frontend, and users can create and store notes that persist in the database. All services run via Docker Compose.
+
+## MCP Integration
+JEAN is now an "MCP first" application, implementing the full Model Context Protocol as defined by Anthropic. This allows seamless integration with Claude Desktop and IDE extensions like Cursor and VS Code. Users can:
+
+1. Authenticate with Google OAuth
+2. Receive personalized MCP configuration for their Claude Desktop and IDE extension
+3. Use AI assistants to access and manage their personal memory data
+4. Store and retrieve notes, GitHub data, and other context through standardized MCP tools and resources
+
+The MCP implementation provides:
+- Tool endpoints for note creation, search, and retrieval
+- GitHub integration for repositories and code search
+- Configuration resources for easy setup
+- Authentication middleware for secure access
+- Full SDK implementation based on official Anthropic specifications
 
 ## Development Mode
 For testing during development, the application includes fallbacks that allow:

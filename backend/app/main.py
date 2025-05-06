@@ -12,6 +12,9 @@ from app.config import settings
 import database
 from database.context_storage import ContextDatabase # Only for typing
 
+# Import MCP server from our jean_mcp package
+from jean_mcp.server import mcp
+
 logger = logging.getLogger(__name__)
 
 @app.on_event("startup")
@@ -43,6 +46,10 @@ async def shutdown_event():
     # Use the database singleton to close the connection
     await database.close_db()
     logger.info("Application shutdown sequence finished.")
+
+# Mount the MCP server at the /mcp path
+app.mount("/mcp", mcp.sse_app())
+logger.info("MCP server mounted at /mcp")
 
 if __name__ == "__main__":
     logger.info(f"Starting server with Uvicorn on host 0.0.0.0 port 8080")
