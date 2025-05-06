@@ -47,12 +47,14 @@ def create_app():
     async def mcp_endpoint(request: Request, mcp_request: MCPRequest) -> MCPResponse:
         """Handles MCP store and retrieve operations."""
         user_id = getattr(request.state, 'user_id', None)
+        tenant_id = getattr(request.state, 'tenant_id', 'default')  # Default tenant if not specified
+        
         if not user_id:
             # This should theoretically be caught by middleware, but double-check
             logger.error("MCP endpoint reached without user_id in request state.")
             return MCPResponse(error={"code": -32000, "message": "Authentication failed"})
 
-        logger.info(f"MCP request received: Method='{mcp_request.method}' for User='{user_id}'")
+        logger.info(f"MCP request received: Method='{mcp_request.method}' for User='{user_id}' (Tenant: {tenant_id})")
 
         method = mcp_request.method
         params = mcp_request.params
@@ -61,7 +63,21 @@ def create_app():
             if method == "retrieve":
                 retrieve_params = MCPRetrieveParams(**params)
                 router: ContextRouter = request.app.state.context_router
-                result_data = await router.route(user_id, retrieve_params.query)
+                
+                # Pass context_type to router if provided
+                result_data = await router.route(
+                    user_id=user_id, 
+                    tenant_id=tenant_id,
+                    query=retrieve_params.query, 
+                    context_type=retrieve_params.context_type
+                )
+                
+                # Log the routing decision for debugging
+                if retrieve_params.context_type:
+                    logger.info(f"Used explicit context_type '{retrieve_params.context_type}' for query: {retrieve_params.query[:30]}...")
+                else:
+                    logger.info(f"Used autonomous routing for query: {retrieve_params.query[:30]}... (resulted in context_type: {result_data['type']})")
+                
                 return MCPResponse(result=MCPResult(**result_data))
 
             elif method == "store":
@@ -70,6 +86,7 @@ def create_app():
                 if db:
                      await db.store_context(
                          user_id=user_id,
+                         tenant_id=tenant_id,
                          context_type=store_params.context_type,
                          content=store_params.content,
                          source_identifier=store_params.source_identifier

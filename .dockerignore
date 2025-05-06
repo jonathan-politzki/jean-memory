@@ -1,0 +1,67 @@
+# Version control
+.git
+.gitignore
+.github
+
+# Environment files (handled by env vars in Docker)
+.env
+.env.*
+!.env.example
+
+# Python virtual environments
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.py[cod]
+*$py.class
+
+# Build and distribution files
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Development and IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Test and documentation
+tests/
+test/
+docs/
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+
+# Logs and databases
+*.log
+logs/
+*.sqlite
+*.sqlite3
+*.db
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Docker files (to avoid recursion issues)
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Other
+README.md
+LICENSE
+*.md
+.mypy_cache
+.pytest_cache 

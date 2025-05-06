@@ -13,6 +13,7 @@ JEAN acts as a background MCP service that intelligently gathers, processes, and
 -   **User Simplicity:** Easy onboarding via Google Auth and a simple configuration URL.
 -   **Privacy Focused:** User control over data, encryption at rest.
 -   **Specialized Routing:** Avoids vector databases, instead routing queries to domain-specific Gemini processing pipelines.
+-   **Autonomous Context Selection:** Uses AI to automatically determine the most relevant context category for each query.
 
 ## Architecture
 
@@ -20,10 +21,44 @@ JEAN acts as a background MCP service that intelligently gathers, processes, and
 2.  **Backend (`backend/`):** A FastAPI application implementing the JEAN MCP server.
     -   **MCP Endpoint (`backend/app/`):** Handles `store` and `retrieve` requests.
     -   **Context Router (`backend/routers/context_router.py`):** Analyzes queries and dispatches to specialized routers.
-    -   **Specialized Routers (`backend/routers/`):** Domain-specific routers (GitHub, Notes, Values, Conversations) that fetch raw data, format it, and process it using dedicated Gemini API calls (`backend/services/gemini_api.py`).
+    -   **Specialized Routers (`backend/routers/`):** Domain-specific routers that process different types of context:
+        -   **GitHub Router:** Code, repositories, PRs, issues, technical information
+        -   **Notes Router:** Personal notes, knowledge base content, documentation
+        -   **Values Router:** Personal values, preferences, principles
+        -   **Conversations Router:** Meeting notes, chat history, discussions
+        -   **Tasks Router:** To-do lists, projects, goals, deadlines
+        -   **Work Router:** Professional documents, career information
+        -   **Media Router:** Videos, articles, podcasts, content consumption
+        -   **Locations Router:** Places, travel notes, location information
+    -   **AI Classification Service (`backend/services/gemini_api.py`):** Uses Gemini API to classify queries into context types, enabling autonomous operation.
     -   **Database (`backend/database/`):** PostgreSQL database storing user info and cached raw context, accessed via `asyncpg`.
 
-(See the architecture diagrams and detailed implementation guide in the original documents/design files for more.)
+## Autonomous MCP Operation
+
+JEAN implements an advanced autonomous routing system that allows AI models to automatically access relevant context without explicit user intervention:
+
+1. **Auto-mode:** When an MCP request contains only a query, JEAN uses Gemini to classify the query and route it to the appropriate specialized router.
+   ```json
+   {
+     "method": "retrieve",
+     "params": {
+       "query": "What did I write about quantum physics?"
+     }
+   }
+   ```
+
+2. **Explicit-mode:** Models can also explicitly specify which context type they need when they know exactly what information they're looking for.
+   ```json
+   {
+     "method": "retrieve",
+     "params": {
+       "query": "What did I write about quantum physics?",
+       "context_type": "notes"
+     }
+   }
+   ```
+
+See `backend/ROUTER_SYSTEM.md` for more details on the autonomous routing system.
 
 ## Getting Started (Development)
 
@@ -65,6 +100,35 @@ JEAN acts as a background MCP service that intelligently gathers, processes, and
     # Or: python -m uvicorn app.main:app --reload
     ```
 7.  **Frontend Setup (TBD):** Follow instructions in `frontend/README.md` once implemented.
+
+## Docker Deployment
+
+The project includes Docker configuration for easy deployment:
+
+1. **Clone the repository and navigate to it**
+2. **Create a `.env` file in the root directory with your Gemini API key:**
+   ```
+   GEMINI_API_KEY=your_gemini_api_key
+   ```
+3. **Build and start the services:**
+   ```bash
+   docker-compose up -d
+   ```
+
+See `SETUP.md` for detailed deployment instructions.
+
+## Testing
+
+1. **Test the autonomous routing with mock Gemini:**
+   ```bash
+   cd backend
+   python test_mcp_mock.py
+   ```
+2. **Try the example MCP client:**
+   ```bash
+   cd backend
+   python examples/mcp_client_example.py --query "What's in my GitHub repository?"
+   ```
 
 ## Immediate Next Steps (Code Implementation)
 

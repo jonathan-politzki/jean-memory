@@ -13,6 +13,7 @@ class MCPStoreParams(MCPBaseParams):
 
 class MCPRetrieveParams(MCPBaseParams):
     query: str
+    context_type: Optional[str] = None  # Optional parameter to explicitly specify context type
     # Potential future params: context_types: List[str], max_tokens: int
 
 class MCPRequest(BaseModel):

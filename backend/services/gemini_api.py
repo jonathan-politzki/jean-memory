@@ -25,6 +25,57 @@ class GeminiAPI:
         # Consider adding a cache (e.g., using cachetools) if needed
         # self.cache = {}
 
+    async def determine_context_type(self, query: str) -> str:
+        """
+        Analyze a query to autonomously determine the most appropriate context type.
+        Uses Gemini to classify the query.
+        """
+        try:
+            prompt = f"""
+            Analyze this query and classify it into ONE of these context categories:
+            - code_development: Code, programming, technical questions about software, GitHub
+            - knowledge_management: Notes, knowledge base content, research information, documentation
+            - task_project: Tasks, projects, planning, goals, meetings, deadlines
+            - values_preferences: Personal values, preferences, principles, decisions, likes, dislikes
+            - communications: Conversations, emails, chats, social interactions, discussions
+            - professional: Work documents, industry knowledge, career information
+            - media_content: Videos, articles, podcasts, content consumption, entertainment
+            - location_environment: Places, travel, physical environment, geography
+
+            Query: {query}
+            
+            Return ONLY the category name with no explanation.
+            """
+            
+            # Use a faster model for classification
+            model = genai.GenerativeModel('gemini-1.5-flash-latest')
+            
+            # Run in a separate thread to avoid blocking the event loop
+            response = await asyncio.to_thread(
+                model.generate_content,
+                prompt
+            )
+            
+            context_type = response.text.strip().lower()
+            
+            # Map the classification to actual router types
+            context_type_mapping = {
+                "code_development": "github",  # Expand this router to include more code sources
+                "knowledge_management": "notes",
+                "task_project": "tasks",
+                "values_preferences": "values",
+                "communications": "conversations",
+                "professional": "work",
+                "media_content": "media",
+                "location_environment": "locations"
+            }
+            
+            return context_type_mapping.get(context_type, "notes")  # Default to notes if unrecognized
+            
+        except Exception as e:
+            logger.exception(f"Error determining context type with Gemini: {e}")
+            return "notes"  # Default fallback
+
     def _format_github(self, github_data: List[Dict[str, Any]]) -> str:
         """Format GitHub data for Gemini API prompt."""
         formatted = "GITHUB REPOSITORIES:\n\n"

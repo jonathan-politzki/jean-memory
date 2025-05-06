@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: jean
+      POSTGRES_PASSWORD: jean_password
+      POSTGRES_DB: jean
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jean"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jean_network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  backend:
+    build: ./backend
+    image: jean-backend:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://jean:jean_password@postgres:5432/jean
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - JEAN_API_BASE_URL=http://localhost:8000
+      - LOG_LEVEL=INFO
+      # Tenant isolation (can be set to 'strict' or 'shared')
+      - TENANT_ISOLATION=strict
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+      - /app/.venv  # If poetry creates a virtual env, don't mount it
+    networks:
+      - jean_network
+    # Enable scaling for multiple instances
+    deploy:
+      replicas: 1  # Start with 1, can be scaled up
+      resources:
+        limits:
+          memory: 1G
+      restart_policy:
+        condition: on-failure
+        max_attempts: 3
+
+  frontend:
+    build: ./frontend
+    image: jean-frontend:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - BACKEND_URL=http://backend:8000
+      # Pass tenant ID from environment (useful for single-tenant deployments)
+      - DEFAULT_TENANT_ID=${TENANT_ID:-default}
+    depends_on:
+      - backend
+    networks:
+      - jean_network
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          memory: 512M
+
+  # Redis for caching/rate-limiting (optional but recommended for production)
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - jean_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+networks:
+  jean_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data: 

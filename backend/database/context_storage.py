@@ -1,199 +1,221 @@
+import logging
 import asyncpg
 import json
-import secrets
-import logging
-import os
+import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any, Tuple
+from typing import Dict, Any, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 class ContextDatabase:
-    """Database access for context storage and user management."""
-
-    def __init__(self, database_url: str):
-        self.database_url = database_url
-        self._pool: Optional[asyncpg.Pool] = None
-
+    """Database interface for JEAN context storage."""
+    
+    def __init__(self, connection_string: str):
+        # Convert SQLAlchemy format URL if necessary
+        if "+asyncpg" in connection_string:
+            connection_string = connection_string.replace("+asyncpg", "")
+        
+        self.connection_string = connection_string
+        self.pool = None
+        logger.info("ContextDatabase instance created (not yet connected)")
+    
     async def initialize(self):
-        """Initialize database connection pool and create tables if they don't exist."""
-        if self._pool:
-            logger.warning("Database pool already initialized.")
-            return
+        """Initialize the database connection and tables."""
+        logger.info("Initializing database connection and tables...")
+        
         try:
-            self._pool = await asyncpg.create_pool(self.database_url)
-            logger.info("Database connection pool created successfully.")
-
-            async with self._pool.acquire() as conn:
-                # Create users table
+            # Create connection pool
+            self.pool = await asyncpg.create_pool(self.connection_string)
+            logger.info("Database connection pool created successfully")
+            
+            # Create tables if they don't exist
+            async with self.pool.acquire() as conn:
+                # Create users table with tenant isolation in mind
                 await conn.execute('''
                     CREATE TABLE IF NOT EXISTS users (
-                        user_id SERIAL PRIMARY KEY,
-                        google_id TEXT UNIQUE NOT NULL,
-                        email TEXT,
-                        api_key TEXT UNIQUE NOT NULL,
-                        created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
-                    )
-                ''')
-                logger.info("Checked/created 'users' table.")
-
-                # Create raw_context table
-                await conn.execute('''
-                    CREATE TABLE IF NOT EXISTS raw_context (
                         id SERIAL PRIMARY KEY,
-                        user_id INTEGER NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-                        context_type TEXT NOT NULL,
-                        content JSONB NOT NULL,
-                        source_identifier TEXT, -- e.g., repo name, note filename
-                        created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
-                        updated_at TIMESTAMPTZ,
-                        UNIQUE(user_id, context_type, source_identifier) -- Ensure unique context per source
+                        tenant_id VARCHAR(50) NOT NULL, -- Organization/team isolation
+                        google_id VARCHAR(255) UNIQUE,
+                        email VARCHAR(255) UNIQUE,
+                        api_key VARCHAR(255) UNIQUE,
+                        is_active BOOLEAN DEFAULT TRUE,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                        last_active TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                        settings JSONB DEFAULT '{}'::JSONB,
+                        UNIQUE(tenant_id, google_id)
                     )
                 ''')
-                logger.info("Checked/created 'raw_context' table.")
-
-                # Add indexes for faster lookups
-                await conn.execute('CREATE INDEX IF NOT EXISTS idx_users_google_id ON users (google_id)')
-                await conn.execute('CREATE INDEX IF NOT EXISTS idx_users_api_key ON users (api_key)')
-                await conn.execute('CREATE INDEX IF NOT EXISTS idx_raw_context_user_type ON raw_context (user_id, context_type)')
-
+                
+                # Create context table with separate partitions by context_type
+                # and strong user isolation
+                await conn.execute('''
+                    CREATE TABLE IF NOT EXISTS context (
+                        id SERIAL PRIMARY KEY,
+                        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                        tenant_id VARCHAR(50) NOT NULL, -- For stronger isolation
+                        context_type VARCHAR(50) NOT NULL,
+                        source_identifier VARCHAR(255),
+                        content JSONB NOT NULL,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                        metadata JSONB DEFAULT '{}'::JSONB,
+                        -- Composite index for efficient querying by user within tenant
+                        -- This ensures data isolation between tenants
+                        UNIQUE(tenant_id, user_id, context_type, source_identifier)
+                    )
+                ''')
+                
+                # Create indices for fast lookups
+                await conn.execute('''
+                    CREATE INDEX IF NOT EXISTS idx_context_user_type 
+                    ON context(user_id, context_type);
+                ''')
+                
+                await conn.execute('''
+                    CREATE INDEX IF NOT EXISTS idx_context_tenant 
+                    ON context(tenant_id);
+                ''')
+                
+                logger.info("Database tables and indices created or verified")
         except Exception as e:
-            logger.exception(f"Failed to initialize database pool or tables: {e}")
-            self._pool = None # Ensure pool is None if init failed
+            logger.exception(f"Failed to initialize database: {e}")
             raise
-
+    
     async def close(self):
         """Close the database connection pool."""
-        if self._pool:
-            await self._pool.close()
-            self._pool = None
-            logger.info("Database connection pool closed.")
-
-    def _get_pool(self) -> asyncpg.Pool:
-        """Get the pool, raising an error if not initialized."""
-        if not self._pool:
-            raise RuntimeError("Database pool not initialized. Call initialize() first.")
-        return self._pool
-
-    def _generate_secure_api_key(self) -> str:
-        """Generate a secure random API key."""
-        return secrets.token_hex(32)
-
-    async def create_or_get_user(self, google_id: str, email: Optional[str]) -> Tuple[int, str]:
-        """Create a new user or get existing user based on Google ID. Returns (user_id, api_key)."""
-        pool = self._get_pool()
-        async with pool.acquire() as conn:
-            # Check if user exists
-            user_record = await conn.fetchrow(
-                "SELECT user_id, api_key FROM users WHERE google_id = $1", google_id
-            )
-
-            if user_record:
-                logger.info(f"Found existing user for google_id: {google_id[:5]}...")
-                return user_record['user_id'], user_record['api_key']
-
-            # User doesn't exist, create new user with API key
-            api_key = self._generate_secure_api_key()
-            logger.info(f"Creating new user for google_id: {google_id[:5]}...")
-
-            try:
-                user_record = await conn.fetchrow(
-                    """
-                    INSERT INTO users (google_id, email, api_key)
-                    VALUES ($1, $2, $3)
-                    RETURNING user_id, api_key
-                    """,
-                    google_id, email, api_key
-                )
-                if user_record:
-                     return user_record['user_id'], user_record['api_key']
+        if self.pool:
+            await self.pool.close()
+            logger.info("Database connection pool closed")
+    
+    async def create_or_get_user(self, tenant_id: str, google_id: str, email: str) -> Tuple[int, str]:
+        """Create a new user or get existing user by Google ID."""
+        if not self.pool:
+            raise ConnectionError("Database not initialized")
+        
+        async with self.pool.acquire() as conn:
+            # Generate a unique API key if creating new user
+            api_key = str(uuid.uuid4())
+            
+            # Try to find existing user or create a new one
+            user = await conn.fetchrow('''
+                INSERT INTO users (tenant_id, google_id, email, api_key)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (google_id) DO UPDATE
+                SET last_active = NOW(), email = $3
+                RETURNING id, api_key
+            ''', tenant_id, google_id, email, api_key)
+            
+            return user['id'], user['api_key']
+    
+    async def store_context(self, user_id: int, tenant_id: str, context_type: str, 
+                           content: Dict[str, Any], source_identifier: Optional[str] = None) -> bool:
+        """Store context data for a user with tenant isolation."""
+        if not self.pool:
+            raise ConnectionError("Database not initialized")
+        
+        try:
+            async with self.pool.acquire() as conn:
+                # Convert dict to JSONB for storage
+                content_json = json.dumps(content)
+                
+                # Insert or update context record
+                await conn.execute('''
+                    INSERT INTO context 
+                    (user_id, tenant_id, context_type, source_identifier, content, updated_at)
+                    VALUES ($1, $2, $3, $4, $5::jsonb, NOW())
+                    ON CONFLICT (tenant_id, user_id, context_type, source_identifier) 
+                    DO UPDATE SET content = $5::jsonb, updated_at = NOW()
+                ''', user_id, tenant_id, context_type, source_identifier, content_json)
+                
+                return True
+        except Exception as e:
+            logger.exception(f"Error storing context: {e}")
+            return False
+    
+    async def get_context(self, user_id: int, tenant_id: str, context_type: str, 
+                         source_identifier: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Retrieve context data for a user with tenant isolation."""
+        if not self.pool:
+            raise ConnectionError("Database not initialized")
+        
+        try:
+            async with self.pool.acquire() as conn:
+                # Query with or without source_identifier
+                if source_identifier:
+                    rows = await conn.fetch('''
+                        SELECT context_type, source_identifier, content, updated_at
+                        FROM context
+                        WHERE user_id = $1 AND tenant_id = $2 AND context_type = $3 
+                        AND source_identifier = $4
+                        ORDER BY updated_at DESC
+                    ''', user_id, tenant_id, context_type, source_identifier)
                 else:
-                    # This should not happen with RETURNING clause if insert succeeds
-                    raise RuntimeError("Failed to retrieve user info after insert.")
-            except asyncpg.UniqueViolationError:
-                # Handle rare race condition where user was created between SELECT and INSERT
-                logger.warning(f"Race condition detected for google_id: {google_id[:5]}... Retrying fetch.")
-                user_record = await conn.fetchrow(
-                    "SELECT user_id, api_key FROM users WHERE google_id = $1", google_id
-                )
-                if user_record:
-                    return user_record['user_id'], user_record['api_key']
-                else:
-                    # If still not found, something is wrong
-                    raise RuntimeError("Failed to create or find user after race condition.")
-
+                    rows = await conn.fetch('''
+                        SELECT context_type, source_identifier, content, updated_at
+                        FROM context
+                        WHERE user_id = $1 AND tenant_id = $2 AND context_type = $3
+                        ORDER BY updated_at DESC
+                    ''', user_id, tenant_id, context_type)
+                
+                # Convert database rows to Python dicts
+                result = []
+                for row in rows:
+                    result.append({
+                        'context_type': row['context_type'],
+                        'source_identifier': row['source_identifier'],
+                        'content': row['content'],
+                        'timestamp': row['updated_at'].isoformat()
+                    })
+                
+                return result
+        except Exception as e:
+            logger.exception(f"Error retrieving context: {e}")
+            return []
+    
+    async def delete_user_data(self, user_id: int, tenant_id: str) -> bool:
+        """Delete all context data for a user (for GDPR/privacy compliance)."""
+        if not self.pool:
+            raise ConnectionError("Database not initialized")
+        
+        try:
+            async with self.pool.acquire() as conn:
+                # Delete all context for this user
+                await conn.execute('''
+                    DELETE FROM context 
+                    WHERE user_id = $1 AND tenant_id = $2
+                ''', user_id, tenant_id)
+                
+                return True
+        except Exception as e:
+            logger.exception(f"Error deleting user data: {e}")
+            return False
 
     async def validate_api_key(self, api_key: str) -> Optional[int]:
         """Validate an API key and return the corresponding user_id if valid."""
-        pool = self._get_pool()
-        async with pool.acquire() as conn:
-            user_id = await conn.fetchval("SELECT user_id FROM users WHERE api_key = $1", api_key)
+        if not self.pool:
+            raise ConnectionError("Database not initialized")
+        
+        async with self.pool.acquire() as conn:
+            user_id = await conn.fetchval("SELECT id FROM users WHERE api_key = $1", api_key)
             return user_id
-
-    async def store_context(self, user_id: int, context_type: str, content: Dict[str, Any], source_identifier: Optional[str] = None):
-        """Store or update raw context in the database."""
-        pool = self._get_pool()
-        now = datetime.utcnow()
-        content_json = json.dumps(content)
-
-        async with pool.acquire() as conn:
-            # Use ON CONFLICT to handle inserts or updates
-            await conn.execute(
-                '''
-                INSERT INTO raw_context (user_id, context_type, content, source_identifier, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $5)
-                ON CONFLICT (user_id, context_type, source_identifier)
-                DO UPDATE SET
-                    content = EXCLUDED.content,
-                    updated_at = EXCLUDED.updated_at
-                ''',
-                user_id, context_type, content_json, source_identifier, now
-            )
-        logger.info(f"Stored/updated context for user {user_id}, type '{context_type}', source '{source_identifier}'")
-
-
-    async def get_context(self, user_id: int, context_type: str, source_identifier: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """Retrieve specific raw context from the database."""
-        pool = self._get_pool()
-        query = 'SELECT content FROM raw_context WHERE user_id = $1 AND context_type = $2'
-        params = [user_id, context_type]
-
-        if source_identifier:
-            query += ' AND source_identifier = $3'
-            params.append(source_identifier)
-        else:
-             # If no specific source, maybe get the most recently updated? Or all? Decide strategy.
-             # For now, let's assume source_identifier is usually provided or we fetch all of a type.
-             # To get the most recent: query += ' ORDER BY updated_at DESC NULLS LAST LIMIT 1'
-             # To get all: Modify return type to List[Dict] and use fetch() instead of fetchrow()
-             # For this example, we require source_identifier or return None if ambiguous
-             if not source_identifier:
-                 logger.warning("get_context called without source_identifier, ambiguity possible.")
-                 return None # Or fetch all if desired
-
-
-        async with pool.acquire() as conn:
-            record = await conn.fetchrow(query, *params)
-
-            if record and record['content']:
-                logger.info(f"Retrieved context for user {user_id}, type '{context_type}', source '{source_identifier}'")
-                return json.loads(record['content'])
-            else:
-                 logger.info(f"No context found for user {user_id}, type '{context_type}', source '{source_identifier}'")
-                 return None
 
     async def get_all_context_by_type(self, user_id: int, context_type: str) -> list[Dict[str, Any]]:
         """Retrieve all raw context of a specific type for a user."""
-        pool = self._get_pool()
-        query = 'SELECT content FROM raw_context WHERE user_id = $1 AND context_type = $2 ORDER BY updated_at DESC NULLS LAST'
-        params = [user_id, context_type]
+        if not self.pool:
+            raise ConnectionError("Database not initialized")
+        
+        try:
+            async with self.pool.acquire() as conn:
+                query = 'SELECT content FROM context WHERE user_id = $1 AND context_type = $2 ORDER BY updated_at DESC NULLS LAST'
+                params = [user_id, context_type]
+                records = await conn.fetch(query, *params)
+                results = []
+                for record in records:
+                    if record and record['content']:
+                        results.append(json.loads(record['content']))
 
-        results = []
-        async with pool.acquire() as conn:
-            records = await conn.fetch(query, *params)
-            for record in records:
-                if record and record['content']:
-                    results.append(json.loads(record['content']))
-
-        logger.info(f"Retrieved {len(results)} context items for user {user_id}, type '{context_type}'")
-        return results 
+            logger.info(f"Retrieved {len(results)} context items for user {user_id}, type '{context_type}'")
+            return results
+        except Exception as e:
+            logger.exception(f"Error retrieving context: {e}")
+            return [] 

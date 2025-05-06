@@ -2,29 +2,24 @@ import asyncio
 import logging
 from typing import Dict, Any, Optional, List
 
-# Assuming specialized routers are defined in other files in this directory
-# from .github_router import GitHubRouter
-# from .notes_router import NotesRouter
-# ... etc
-
-# Placeholder classes until implemented
-class GitHubRouter:
-    async def get_context(self, user_id: int, query: str) -> Dict[str, Any]: return {"type": "github", "content": "[GitHub context placeholder]"}
-class NotesRouter:
-    async def get_context(self, user_id: int, query: str) -> Dict[str, Any]: return {"type": "notes", "content": "[Notes context placeholder]"}
-class ValuesRouter:
-    async def get_context(self, user_id: int, query: str) -> Dict[str, Any]: return {"type": "values", "content": "[Values context placeholder]"}
-class ConversationsRouter:
-    async def get_context(self, user_id: int, query: str) -> Dict[str, Any]: return {"type": "conversations", "content": "[Conversations context placeholder]"}
-
+# Import the specialized router classes
+from .github_router import GitHubRouter
+from .notes_router import NotesRouter
+from .values_router import ValuesRouter
+from .conversations_router import ConversationsRouter
+from .tasks_router import TasksRouter
+from .work_router import WorkRouter
+from .media_router import MediaRouter
+from .locations_router import LocationsRouter
 
 logger = logging.getLogger(__name__)
 
-def determine_context_type(query: str) -> str:
-    """Analyze query to determine the most relevant context type(s)."""
+# This function is kept for backward compatibility or manual classification if needed
+def determine_context_type_simple(query: str) -> str:
+    """Basic keyword matching to determine context type - fallback method."""
     query_lower = query.lower()
 
-    # Simple keyword matching (replace/enhance with NLP/LLM later)
+    # Simple keyword matching 
     if any(term in query_lower for term in ["code", "repository", "github", "commit", "repo", "pr", "issue"]):
         return "github"
     elif any(term in query_lower for term in ["note", "notes", "wrote", "writing", "document", "obsidian"]):
@@ -33,9 +28,16 @@ def determine_context_type(query: str) -> str:
         return "values"
     elif any(term in query_lower for term in ["conversation", "discussed", "said", "told me", "meeting"]):
         return "conversations"
+    elif any(term in query_lower for term in ["task", "todo", "project", "goal", "deadline", "schedule"]):
+        return "tasks"
+    elif any(term in query_lower for term in ["work", "job", "professional", "career", "industry"]):
+        return "work"
+    elif any(term in query_lower for term in ["video", "article", "podcast", "read", "watch", "book", "movie"]):
+        return "media"
+    elif any(term in query_lower for term in ["place", "travel", "location", "city", "country", "visit"]):
+        return "locations"
     else:
-        # If no specific keywords, maybe default to a broader search or combination
-        # For now, defaulting to comprehensive, but could also return None or a default type
+        # If no specific keywords, default to comprehensive search
         logger.info(f"Query did not match specific keywords, defaulting to comprehensive search.")
         return "comprehensive"
 
@@ -43,35 +45,65 @@ class ContextRouter:
     """Router that determines which specialized context to use and retrieves it."""
 
     def __init__(self, db, gemini_api):
-        # TODO: Inject dependencies (db connection/pool, gemini api client)
-        # self.db = db
-        # self.gemini_api = gemini_api
+        # Store dependencies
+        self.db = db
+        self.gemini_api = gemini_api
 
         # Initialize specialized routers (passing dependencies)
         self.specialized_routers = {
-            # "github": GitHubRouter(db, gemini_api),
-            # "notes": NotesRouter(db, gemini_api),
-            # "values": ValuesRouter(db, gemini_api),
-            # "conversations": ConversationsRouter(db, gemini_api)
             # Using placeholders for now:
             "github": GitHubRouter(),
             "notes": NotesRouter(),
             "values": ValuesRouter(),
             "conversations": ConversationsRouter(),
+            "tasks": TasksRouter(),
+            "work": WorkRouter(),
+            "media": MediaRouter(),
+            "locations": LocationsRouter(),
         }
         logger.info("ContextRouter initialized with specialized routers.")
 
-    async def route(self, user_id: int, query: str) -> Dict[str, Any]:
-        """Route a query to the appropriate specialized router(s) and return context."""
-        context_type = determine_context_type(query)
-        logger.info(f"Determined context type '{context_type}' for query: '{query[:50]}...'")
+    async def determine_context_type(self, query: str) -> str:
+        """
+        Determine the context type for a query using AI classification.
+        Falls back to basic keyword matching if Gemini API is not available.
+        """
+        if self.gemini_api:
+            try:
+                # Use AI to classify the query
+                context_type = await self.gemini_api.determine_context_type(query)
+                logger.info(f"AI classified query as '{context_type}'")
+                return context_type
+            except Exception as e:
+                logger.warning(f"Error using Gemini to classify query: {e}. Falling back to keyword matching.")
+                return determine_context_type_simple(query)
+        else:
+            # Fall back to simple keyword matching if Gemini API isn't available
+            logger.warning("Gemini API not available, using simple keyword matching for context type.")
+            return determine_context_type_simple(query)
+
+    async def route(self, user_id: int, tenant_id: str, query: str, context_type: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Route a query to the appropriate specialized router(s) and return context.
+        
+        Args:
+            user_id: The user ID for which to retrieve context
+            tenant_id: The tenant/organization ID for isolation
+            query: The query to route
+            context_type: Optional explicit context type (if not provided, will be determined autonomously)
+        """
+        # If context_type is not explicitly provided, determine it
+        if not context_type:
+            context_type = await self.determine_context_type(query)
+            
+        logger.info(f"Using context type '{context_type}' for query: '{query[:50]}...' (User: {user_id}, Tenant: {tenant_id})")
 
         results: List[Dict[str, Any]] = []
 
         if context_type == "comprehensive":
             # Get context from multiple routers concurrently
             tasks = [
-                router.get_context(user_id, query)
+                router.get_context(user_id, tenant_id, query)
                 for router_name, router in self.specialized_routers.items()
                 # Optional: Add logic here to exclude certain routers based on query
             ]
@@ -80,7 +112,7 @@ class ContextRouter:
         elif context_type in self.specialized_routers:
             # Use the specific router
             router = self.specialized_routers[context_type]
-            result = await router.get_context(user_id, query)
+            result = await router.get_context(user_id, tenant_id, query)
             results.append(result)
         else:
             logger.warning(f"No specialized router found for determined context type '{context_type}'.")
