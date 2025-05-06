@@ -4,15 +4,15 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_USER: jean
-      POSTGRES_PASSWORD: jean_password
-      POSTGRES_DB: jean
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U jean"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -29,7 +29,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://jean:jean_password@postgres:5432/jean
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - JEAN_API_BASE_URL=http://localhost:8000
       - LOG_LEVEL=INFO
