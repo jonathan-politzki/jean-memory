@@ -119,9 +119,10 @@
         
         // Initialize the dashboard
         async function initDashboard() {
+            console.log('Initial window.location.search:', window.location.search);
             const params = getUrlParams();
-            const userId = params.jean_user_id || params.user_id; // Try both parameter names
-            const apiKey = params.jean_api_key || params.api_key || 'TEST_API_KEY'; // Try both parameter names
+            const userId = params.jean_user_id || params.user_id;
+            const apiKey = params.jean_api_key || params.api_key; // Removed 'TEST_API_KEY' fallback
             
             console.log("Dashboard initialized with:", { 
                 userId, 
@@ -183,8 +184,8 @@
                 document.getElementById('backendStatus').textContent = healthData.status === 'ok' ? 'Connected' : 'Disconnected';
                 
                 // Check MCP endpoint (via backend proxy)
-                const backendUrl = 'http://localhost:8080';
-                const mcpResponse = await fetch(`${backendUrl}/health`, { mode: 'cors' });
+                const backendBaseUrl = 'http://localhost:8000'; // Corrected port
+                const mcpResponse = await fetch(`${backendBaseUrl}/health`, { mode: 'cors' });
                 document.getElementById('mcpStatus').textContent = mcpResponse.ok ? 'Available' : 'Unavailable';
                 
                 // Auth status is assumed to be OK if we're on this page
@@ -226,7 +227,7 @@
                             });
                             
                             // Send the note to the backend MCP endpoint
-                            fetch('http://localhost:8080/mcp', {
+                            fetch('http://localhost:8000/mcp', { // Corrected port
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',

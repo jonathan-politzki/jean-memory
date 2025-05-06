@@ -32,6 +32,7 @@ app.get('/auth/google/callback', async (req, res) => {
 
     // Get user data from backend response
     const userData = response.data;
+    console.log('User data received from backend for redirect:', userData);
 
     // Redirect to the profile page with user data using consistent parameter names
     res.redirect(`/profile.html?jean_user_id=${userData.user_id}&jean_api_key=${userData.api_key}`);

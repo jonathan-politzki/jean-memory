@@ -2,8 +2,9 @@
 
 ## Current Functionality
 - ✅ **Frontend UI**: Modern AI-style interface with responsive design
-- ✅ **Authentication**: Google OAuth integration working properly
+- ✅ **Authentication**: Google OAuth integration working properly, including correct parameter passing to frontend.
 - ✅ **CORS & API Communication**: Frontend-backend communication properly configured
+- ✅ **Containerization**: Full application (frontend, backend, postgres, redis) successfully containerized with Docker Compose for consistent builds and execution.
 - ✅ **MCP Endpoint**: Basic Model Context Protocol implementation for retrieve/store
 - ✅ **Context Router**: Structure for routing different context types
 - ✅ **Database Integration**: PostgreSQL connection and schema established
@@ -11,12 +12,13 @@
 - ✅ **Error Handling**: Development mode with fallbacks for API validation
 
 ## Working Flow
-1. Frontend server (port 3005) serves the user interface
-2. Backend server (port 8080) provides API endpoints including MCP
-3. User logs in with Google OAuth
-4. Backend authenticates and redirects to frontend with user credentials
-5. Dashboard shows MCP config and available context sources
-6. Notes can be created and stored in the PostgreSQL database
+1. Run `docker-compose up` to start all services.
+2. Frontend server (port 3005) serves the user interface from its container.
+3. Backend server (port 8000 on host, internally 8000) provides API endpoints from its container.
+4. User logs in with Google OAuth.
+5. Backend authenticates and redirects to frontend with correct user credentials in URL.
+6. Dashboard shows MCP config and available context sources.
+7. Notes can be created and stored in the PostgreSQL database
 
 ## Architecture Improvements
 - ✅ **Database Singleton Pattern**: Ensures all app components use the same database connection
@@ -44,20 +46,24 @@
 
 ### Backend
 ```bash
-cd backend
-# Update .env with correct settings
-python3 -m uvicorn app.main:app --reload --port 8080
+# Now run via Docker Compose
+# cd backend
+# # Update .env with correct settings
+# python3 -m uvicorn app.main:app --reload --port 8080
+docker-compose up # (handles backend)
 ```
 
 ### Frontend
 ```bash
-cd frontend
-node server.js
-# Go to http://localhost:3005
+# Now run via Docker Compose
+# cd frontend
+# node server.js
+# # Go to http://localhost:3005
+docker-compose up # (handles frontend, go to http://localhost:3005)
 ```
 
 ## Authentication Flow
-The application now supports Google authentication with proper API key handling. After authentication, users can create and store notes that persist in the database.
+The application now supports Google authentication with proper API key handling. After authentication, user ID and API key are correctly passed to the frontend, and users can create and store notes that persist in the database. All services run via Docker Compose.
 
 ## Development Mode
 For testing during development, the application includes fallbacks that allow:
