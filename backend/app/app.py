@@ -102,72 +102,34 @@ def create_app():
         """Endpoint specifically for testing CORS."""
         return {"cors": "enabled", "status": "ok"}
 
-    @app.post("/mcp",
-              response_model=MCPResponse,
-              tags=["MCP"],
-              summary="Main MCP Endpoint",
-              dependencies=[Depends(verify_api_key)])
-    async def mcp_endpoint(request: Request, mcp_request: MCPRequest) -> MCPResponse:
-        """Handles MCP store and retrieve operations."""
-        user_id = getattr(request.state, 'user_id', None)
-        tenant_id = getattr(request.state, 'tenant_id', 'default')  # Default tenant if not specified
-        
-        if not user_id:
-            # This should theoretically be caught by middleware, but double-check
-            logger.error("MCP endpoint reached without user_id in request state.")
-            return MCPResponse(error={"code": -32000, "message": "Authentication failed"})
-
-        logger.info(f"MCP request received: Method='{mcp_request.method}' for User='{user_id}' (Tenant: {tenant_id})")
-
-        method = mcp_request.method
-        params = mcp_request.params
-
-        try:
-            if method == "retrieve":
-                retrieve_params = MCPRetrieveParams(**params)
-                router: ContextRouter = request.app.state.context_router
-                
-                # Pass context_type to router if provided
-                result_data = await router.route(
-                    user_id=user_id, 
-                    tenant_id=tenant_id,
-                    query=retrieve_params.query, 
-                    context_type=retrieve_params.context_type
-                )
-                
-                # Log the routing decision for debugging
-                if retrieve_params.context_type:
-                    logger.info(f"Used explicit context_type '{retrieve_params.context_type}' for query: {retrieve_params.query[:30]}...")
-                else:
-                    logger.info(f"Used autonomous routing for query: {retrieve_params.query[:30]}... (resulted in context_type: {result_data['type']})")
-                
-                return MCPResponse(result=MCPResult(**result_data))
-
-            elif method == "store":
-                store_params = MCPStoreParams(**params)
-                db: Optional[ContextDatabase] = request.app.state.db
-                if db:
-                     await db.store_context(
-                         user_id=user_id,
-                         tenant_id=tenant_id,
-                         context_type=store_params.context_type,
-                         content=store_params.content,
-                         source_identifier=store_params.source_identifier
-                     )
-                     logger.info(f"Context stored successfully for user {user_id}, type '{store_params.context_type}'")
-                     stored_status = True
-                else:
-                     logger.warning("DB not available, skipping context storage.")
-                     stored_status = False
-                return MCPResponse(result=MCPResult(type="success", content={"stored": stored_status}))
-            else:
-                logger.warning(f"Unsupported MCP method received: {method}")
-                return MCPResponse(error={"code": -32601, "message": f"Method '{method}' not found"})
-
-        except Exception as e:
-            logger.exception(f"Error processing MCP request (Method: {method}) for user {user_id}: {e}")
-            # Pydantic validation errors could be caught separately for 400 errors
-            return MCPResponse(error={"code": -32000, "message": f"Internal server error: {str(e)}"})
+    # Legacy MCP endpoint - removing to let FastMCP server handle these requests
+    # @app.post("/mcp",
+    #           response_model=MCPResponse,
+    #           tags=["MCP"],
+    #           summary="Main MCP Endpoint",
+    #           dependencies=[Depends(verify_api_key)])
+    # async def mcp_endpoint(request: Request, mcp_request: MCPRequest) -> MCPResponse:
+    #     """Handles MCP store and retrieve operations."""
+    #     user_id = getattr(request.state, 'user_id', None)
+    #     tenant_id = getattr(request.state, 'tenant_id', 'default')  # Default tenant if not specified
+    #     
+    #     if not user_id:
+    #         # This should theoretically be caught by middleware, but double-check
+    #         logger.error("MCP endpoint reached without user_id in request state.")
+    #         return MCPResponse(error={"code": -32000, "message": "Authentication failed"})
+    # 
+    #     logger.info(f"MCP request received: Method='{mcp_request.method}' for User='{user_id}' (Tenant: {tenant_id})")
+    # 
+    #     method = mcp_request.method
+    #     params = mcp_request.params
+    # 
+    #     try:
+    #         # Legacy implementation - now handled by FastMCP server
+    #         logger.warning(f"Unsupported MCP method received: {method}")
+    #         return MCPResponse(error={"code": -32601, "message": f"Method '{method}' not found"})
+    #     except Exception as e:
+    #         logger.exception(f"Error processing MCP request: {e}")
+    #         return MCPResponse(error={"code": -32000, "message": str(e)})
 
     # Google Auth Callback - with proper token verification and user extraction
     @app.get("/auth/google/callback", tags=["Authentication"])

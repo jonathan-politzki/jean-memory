@@ -150,23 +150,34 @@ def register_note_tools(mcp: FastMCP):
             return {"success": False, "error": "User ID not provided"}
         
         try:
-            # Get recent notes from the database
-            results = await db.get_recent_context(
+            # Get recent notes from the database by calling get_context without a source_identifier
+            results = await db.get_context(
                 user_id=user_id,
                 tenant_id=tenant_id,
                 context_type=context_type,
-                limit=limit
+                limit=limit  # Pass the limit parameter
             )
             
-            formatted_results = []
-            for result in results:
-                formatted_results.append({
-                    "id": result.get("id"),
-                    "content": result.get("content"),
-                    "created_at": result.get("created_at"),
-                    "tags": result.get("metadata", {}).get("tags", "").split(",") if result.get("metadata", {}).get("tags") else []
-                })
+            # The results from get_context are already formatted correctly
+            # No need to re-format here if get_context returns the desired dict structure
+            # However, the current get_context returns a list of dicts with specific keys.
+            # We need to ensure the 'tags' are extracted from metadata if that's the desired output.
             
+            formatted_results = []
+            for result_item in results: # result_item is a dict from get_context
+                tags_list = []
+                if result_item.get('metadata') and isinstance(result_item['metadata'], dict) and result_item['metadata'].get('tags'):
+                    tags_list = result_item['metadata'].get('tags', "").split(",")
+                elif isinstance(result_item.get('metadata'), str): # Handle if metadata.tags is just a string
+                    tags_list = result_item.get('metadata', "").split(",")
+                    
+                formatted_results.append({
+                    "id": result_item.get("id"),
+                    "content": result_item.get("content"), # Assuming content is directly usable
+                    "created_at": result_item.get("created_at"),
+                    "tags": tags_list
+                })
+
             return {
                 "success": True,
                 "count": len(formatted_results),

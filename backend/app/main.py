@@ -14,6 +14,8 @@ from database.context_storage import ContextDatabase # Only for typing
 
 # Import MCP server from our jean_mcp package
 from jean_mcp.server import mcp
+# Import MCP configuration routes
+from jean_mcp.server.mcp_config import router as mcp_config_router
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +50,13 @@ async def shutdown_event():
     logger.info("Application shutdown sequence finished.")
 
 # Mount the MCP server at the /mcp path
-app.mount("/mcp", mcp.sse_app())
+mcp_app = mcp.sse_app()
+app.mount("/mcp", mcp_app)
 logger.info("MCP server mounted at /mcp")
+
+# Include MCP configuration routes
+app.include_router(mcp_config_router)
+logger.info("MCP configuration routes included at /mcp-config")
 
 if __name__ == "__main__":
     logger.info(f"Starting server with Uvicorn on host 0.0.0.0 port 8080")

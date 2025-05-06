@@ -83,7 +83,8 @@ mcp = FastMCP(
     version="0.1.0",
     lifespan=app_lifespan,
     description="Personal Memory Layer for AI Assistants",
-    middleware=[Middleware(MCPAuthMiddleware)]
+    middleware=[Middleware(MCPAuthMiddleware)],
+    path_prefix=""  # Explicitly set path prefix to empty string
 )
 
 # Register MCP initialization function
@@ -102,6 +103,14 @@ def initialize_mcp_server():
     # Import and register auth tools for configuration
     from jean_mcp.tools.auth_tools import register_auth_tools
     register_auth_tools(mcp)
+    
+    # Import and register value extraction tools
+    from jean_mcp.tools.value_extraction_tools import register_value_extraction_tools
+    register_value_extraction_tools(mcp)
+    
+    # Import and register prompts
+    from jean_mcp.resources.prompts import register_prompts
+    register_prompts(mcp)
     
     logger.info("MCP server initialization complete")
     return mcp

@@ -56,9 +56,9 @@ class ContextDatabase:
                         context_type VARCHAR(50) NOT NULL,
                         source_identifier VARCHAR(255),
                         content JSONB NOT NULL,
+                        metadata JSONB DEFAULT '{}'::JSONB,
                         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
                         updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                        metadata JSONB DEFAULT '{}'::JSONB,
                         -- Composite index for efficient querying by user within tenant
                         -- This ensures data isolation between tenants
                         UNIQUE(tenant_id, user_id, context_type, source_identifier)
@@ -108,7 +108,8 @@ class ContextDatabase:
             return user['id'], user['api_key']
     
     async def store_context(self, user_id: int, tenant_id: str, context_type: str, 
-                           content: Dict[str, Any], source_identifier: Optional[str] = None) -> bool:
+                           content: Dict[str, Any], source_identifier: Optional[str] = None,
+                           metadata: Optional[Dict[str, Any]] = None) -> bool:
         """Store context data for a user with tenant isolation."""
         if not self.pool:
             raise ConnectionError("Database not initialized")
@@ -117,15 +118,16 @@ class ContextDatabase:
             async with self.pool.acquire() as conn:
                 # Convert dict to JSONB for storage
                 content_json = json.dumps(content)
+                metadata_json = json.dumps(metadata) if metadata else json.dumps({})
                 
                 # Insert or update context record
                 await conn.execute('''
                     INSERT INTO context 
-                    (user_id, tenant_id, context_type, source_identifier, content, updated_at)
-                    VALUES ($1, $2, $3, $4, $5::jsonb, NOW())
+                    (user_id, tenant_id, context_type, source_identifier, content, metadata, updated_at)
+                    VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, NOW())
                     ON CONFLICT (tenant_id, user_id, context_type, source_identifier) 
-                    DO UPDATE SET content = $5::jsonb, updated_at = NOW()
-                ''', user_id, tenant_id, context_type, source_identifier, content_json)
+                    DO UPDATE SET content = $5::jsonb, metadata = $6::jsonb, updated_at = NOW()
+                ''', user_id, tenant_id, context_type, source_identifier, content_json, metadata_json)
                 
                 return True
         except Exception as e:
@@ -133,7 +135,8 @@ class ContextDatabase:
             return False
     
     async def get_context(self, user_id: int, tenant_id: str, context_type: str, 
-                         source_identifier: Optional[str] = None) -> List[Dict[str, Any]]:
+                         source_identifier: Optional[str] = None,
+                         limit: Optional[int] = None) -> List[Dict[str, Any]]:
         """Retrieve context data for a user with tenant isolation."""
         if not self.pool:
             raise ConnectionError("Database not initialized")
@@ -142,31 +145,43 @@ class ContextDatabase:
             async with self.pool.acquire() as conn:
                 # Query with or without source_identifier
                 if source_identifier:
-                    rows = await conn.fetch('''
-                        SELECT context_type, source_identifier, content, updated_at
+                    query = '''
+                        SELECT id, context_type, source_identifier, content, metadata, created_at, updated_at
                         FROM context
                         WHERE user_id = $1 AND tenant_id = $2 AND context_type = $3 
                         AND source_identifier = $4
                         ORDER BY updated_at DESC
-                    ''', user_id, tenant_id, context_type, source_identifier)
+                    '''
+                    params = [user_id, tenant_id, context_type, source_identifier]
                 else:
-                    rows = await conn.fetch('''
-                        SELECT context_type, source_identifier, content, updated_at
+                    query = '''
+                        SELECT id, context_type, source_identifier, content, metadata, created_at, updated_at
                         FROM context
                         WHERE user_id = $1 AND tenant_id = $2 AND context_type = $3
                         ORDER BY updated_at DESC
-                    ''', user_id, tenant_id, context_type)
+                    '''
+                    params = [user_id, tenant_id, context_type]
+
+                if limit is not None:
+                    query += f" LIMIT ${len(params) + 1}"
+                    params.append(limit)
+                
+                rows = await conn.fetch(query, *params)
                 
                 # Convert database rows to Python dicts
                 result = []
                 for row in rows:
                     result.append({
+                        'id': row['id'],
                         'context_type': row['context_type'],
                         'source_identifier': row['source_identifier'],
                         'content': row['content'],
-                        'timestamp': row['updated_at'].isoformat()
+                        'metadata': row['metadata'],
+                        'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                        'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None
                     })
                 
+                logger.info(f"Retrieved {len(result)} context items for user {user_id}, type '{context_type}'")
                 return result
         except Exception as e:
             logger.exception(f"Error retrieving context: {e}")
@@ -262,4 +277,79 @@ class ContextDatabase:
             return results
         except Exception as e:
             logger.exception(f"Error retrieving context: {e}")
+            return []
+
+    async def get_user_settings_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """Retrieve the settings JSONB for a specific user."""
+        if not self.pool:
+            logger.error("Database pool not initialized in get_user_settings_by_id")
+            return None
+        
+        try:
+            async with self.pool.acquire() as conn:
+                settings_json = await conn.fetchval("SELECT settings FROM users WHERE id = $1", user_id)
+                if settings_json:
+                    # asyncpg returns JSONB as a string, so parse it
+                    return json.loads(settings_json) if isinstance(settings_json, str) else settings_json
+                return {}
+        except Exception as e:
+            logger.exception(f"Error retrieving user settings for user_id {user_id}: {e}")
+            return None
+
+    async def update_user_settings_by_id(self, user_id: int, new_settings: Dict[str, Any]) -> bool:
+        """Update the settings JSONB for a specific user."""
+        if not self.pool:
+            logger.error("Database pool not initialized in update_user_settings_by_id")
+            return False
+        
+        try:
+            async with self.pool.acquire() as conn:
+                settings_json_str = json.dumps(new_settings)
+                await conn.execute("UPDATE users SET settings = $1 WHERE id = $2", settings_json_str, user_id)
+                return True
+        except Exception as e:
+            logger.exception(f"Error updating user settings for user_id {user_id}: {e}")
+            return False
+
+    async def search_context(self, user_id: int, tenant_id: str, context_type: str, 
+                            query: str, limit: Optional[int] = 10) -> List[Dict[str, Any]]:
+        """Search context data for a user based on a query string (simple ILIKE search on content)."""
+        if not self.pool:
+            raise ConnectionError("Database not initialized")
+        
+        try:
+            async with self.pool.acquire() as conn:
+                # Perform a simple ILIKE search on the content field (cast to text)
+                # This is a basic search. For more advanced search, consider full-text search capabilities.
+                sql_query = '''
+                    SELECT id, context_type, source_identifier, content, metadata, created_at, updated_at
+                    FROM context
+                    WHERE user_id = $1 AND tenant_id = $2 AND context_type = $3
+                    AND content::text ILIKE $4  -- Search within the JSONB content as text
+                    ORDER BY updated_at DESC
+                '''
+                params = [user_id, tenant_id, context_type, f"%{query}%"]
+
+                if limit is not None:
+                    sql_query += f" LIMIT ${len(params) + 1}"
+                    params.append(limit)
+                
+                rows = await conn.fetch(sql_query, *params)
+                
+                results = []
+                for row in rows:
+                    results.append({
+                        'id': row['id'],
+                        'context_type': row['context_type'],
+                        'source_identifier': row['source_identifier'],
+                        'content': row['content'], # This is JSONB, might need specific key access in tool
+                        'metadata': row['metadata'],
+                        'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                        'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None
+                    })
+                
+                logger.info(f"Found {len(results)} items matching query '{query}' for user {user_id}, type '{context_type}'")
+                return results
+        except Exception as e:
+            logger.exception(f"Error searching context for query '{query}': {e}")
             return [] 

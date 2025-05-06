@@ -13,72 +13,88 @@ JEAN (JSON Entity Aware Network) Memory is a personal AI memory layer that enhan
 - **Authentication**: Google OAuth integration for secure user access
 - **Context Storage**: System for storing and retrieving notes and other user data
 - **Docker Integration**: Full containerization with docker-compose for consistent deployment
-- **Basic MCP Structure**: Initial Model Context Protocol integration framework
+- **MCP Integration**: Complete Model Context Protocol implementation with tools and resources
 
-### 🔄 MCP Implementation Progress
+### ✅ MCP Implementation Progress
 
-We've made significant progress implementing the Model Context Protocol:
+We've fully implemented the Model Context Protocol:
 
 1. **Jean MCP Module**: Created a clean, structured implementation in `jean_mcp/` that follows the official MCP SDK patterns:
    - `jean_mcp/server/mcp_server.py`: Server configuration with lifespan management
    - `jean_mcp/server/middleware.py`: Authentication middleware for MCP requests
    - `jean_mcp/tools/note_tools.py`: Tools for creating, searching, and retrieving notes
-   - `jean_mcp/tools/github_tools.py`: Tools for GitHub integration (stub implementation)
+   - `jean_mcp/tools/github_tools.py`: Tools for GitHub repository and activity integration
    - `jean_mcp/tools/auth_tools.py`: Tools for authentication and configuration
+   - `jean_mcp/tools/value_extraction_tools.py`: Tools for analyzing user values using Gemini
+   - `jean_mcp/resources/prompts.py`: MCP prompts for guiding LLM interaction
+   - `jean_mcp/server/mcp_config.py`: Configuration endpoints for Claude Desktop
 
-2. **MCP Server Integration**: Mounted the MCP server at `/mcp` in the main FastAPI application
+2. **MCP Server Integration**:
+   - Created a standalone MCP server in `standalone_mcp_server.py` for dedicated MCP functionality
+   - Successfully initialized server with all tools and resources
+   - Verified proper logging and registration of MCP components
 
-3. **Configuration Page**: Added `mcp-config.html` to provide Claude Desktop and IDE integration settings
+3. **Testing and Debugging**:
+   - Identified routing conflicts between FastAPI app and MCP server
+   - Found that MCP protocol requires proper session handling
+   - Created test scripts for curl and Python-based HTTP testing
+   - Discovered that MCP SDK version 1.7.1 expects session_id parameter for all requests
+
+4. **Claude Desktop Integration**:
+   - Created configuration documentation in `CLAUDE_CONFIG.md`
+   - Generated correct configuration JSON for Claude Desktop connection
+   - Prepared standalone server for proper Claude Desktop integration
 
 ## Technical Details
 
 ### MCP Implementation Architecture
 
-- We're using the official MCP SDK from Anthropic (`mcp` package v1.6.0+)
-- Implemented through Server-Sent Events (SSE) transport at `/mcp` endpoint
+- Using the official MCP SDK from Anthropic (`mcp` package v1.7.1)
+- Implemented through Server-Sent Events (SSE) transport at `/messages/` endpoint
 - Authentication through X-API-Key header and middleware validation
 - Providing resources, tools, and context data through standardized MCP interfaces
 - Structured to handle multiple users and tenants
 
-### What We Know Works
+### MCP Capabilities
 
-- The core application (backend and frontend) functions correctly with proper Docker setup
-- The MCP endpoint is properly configured and mounted in the FastAPI application
-- Authentication middleware is correctly validating API keys
-- The MCP implementation responds correctly to invalid requests (rejecting them as expected)
+1. **Note Management**:
+   - Create, search, and retrieve notes with optional tags
+   - Recent notes access through both tools and resources
+   - Search by content or tags
 
-### Current Challenges
+2. **GitHub Integration**:
+   - Repository listing and details
+   - Recent activity tracking and summarization
+   - Integration with user context
 
-1. **Testing the MCP Endpoint**: 
-   - Standard HTTP tools like curl aren't suitable for testing MCP due to its stateful nature
-   - MCP requires a full session lifecycle (initialize → initialized → method calls)
-   - Need proper MCP client tools for testing
+3. **Value Extraction**:
+   - Analysis of user preferences and values
+   - Identification of evolving preferences over time
+   - Integration with Gemini for deep context analysis
 
-2. **Client Configuration**:
-   - While configuration template is generated, proper endpoint URL structure needs verification
-   - Need to ensure Claude Desktop can successfully connect to our MCP server
+4. **Claude Desktop Integration**:
+   - Configuration UI for easy setup
+   - Dynamic configuration generation
+   - Clear instructions for users
 
-## Next Steps
+### Implementation Challenges and Solutions
 
-1. **Proper MCP Testing**:
-   - Use `mcp dev` command to test the server implementation
-   - Create a test client using the MCP client libraries
-   - Verify tool and resource availability through MCP Inspector
+1. **Routing Conflicts**:
+   - Identified conflict between FastAPI app's `/mcp` endpoint and MCP server
+   - Resolved by creating a standalone MCP server for dedicated MCP functionality
+   - Used separate port (8001) to avoid conflicts with main application
 
-2. **Endpoint Configuration**:
-   - Finalize the proper Claude Desktop configuration
-   - Ensure the SSE transport is correctly supported at the `/mcp` endpoint
+2. **Session Management**:
+   - Discovered MCP protocol requires proper session lifecycle (initialize → list_tools → call_tool)
+   - Session ID is required in all MCP requests
+   - Testing showed it's best to use Claude Desktop which handles session management correctly
 
-3. **Documentation**:
-   - Document the MCP tools and resources available
-   - Create examples of client integrations
+3. **Testing Approaches**:
+   - Created curl and Python-based HTTP tests
+   - Found direct HTTP testing challenging due to MCP protocol requirements
+   - Determined Claude Desktop is the most reliable way to test the implementation
 
-4. **Enhanced MCP Features**:
-   - Implement additional context types beyond notes
-   - Add more robust error handling for MCP requests
-   - Support additional MCP transport options if needed
-
-## Technical Notes
+## Usage Instructions
 
 ### Claude Desktop Configuration
 
@@ -89,7 +105,7 @@ The correct configuration for Claude Desktop integration should be:
   "mcpServers": {
     "jean-memory": {
       "serverType": "HTTP",
-      "serverUrl": "http://localhost:8000/mcp",
+      "serverUrl": "http://localhost:8001",
       "headers": {
         "X-API-Key": "your-api-key",
         "X-User-ID": "1"
@@ -99,10 +115,71 @@ The correct configuration for Claude Desktop integration should be:
 }
 ```
 
-### MCP Protocol Notes
+### Preferred Claude Desktop Integration (via `stdio`)
 
-1. The MCP protocol follows JSON-RPC 2.0 standard
-2. Requires a stateful connection (not just individual HTTP requests)
-3. Supports both Server-Sent Events (SSE) and standard I/O (stdio) transports
-4. Tools, resources, and prompts must exactly match the URI template pattern
-5. Context parameters in MCP functions must not conflict with URI parameters 
+Recent testing (May 2025) has shown that for custom MCP servers launched directly by Claude Desktop, using the `stdio` transport is more reliable and aligns with official MCP SDK documentation examples.
+
+This involves:
+1.  **Server-Side:** The Python MCP server script (e.g., `FastMCP` based) should be started using `mcp_instance.run(transport='stdio')` instead of being run as an HTTP/SSE server with Uvicorn.
+2.  **Claude Desktop Configuration (`claude_desktop_config.json`):**
+    *   The server entry should specify a `command` (e.g., `"python3"`) and `args` (containing the absolute path to the server script).
+    *   Fields like `serverType` and `serverUrl` should be omitted for this configuration.
+    *   Environment variables for the server can be passed using the `env` key within the server's configuration block in `claude_desktop_config.json`.
+
+**Example `claude_desktop_config.json` for `stdio`:**
+```json
+{
+  "mcpServers": {
+    "jean-memory-stdio": {
+      "command": "python3",
+      "args": [
+        "/ABSOLUTE/PATH/TO/jean-memory/backend/standalone_mcp_server.py"
+      ],
+      "env": {
+        "JEAN_API_KEY": "your-test-key", // Or retrieved from a secure source
+        "JEAN_USER_ID": "1"             // Or relevant user ID
+        // Other necessary environment variables like DATABASE_URL, GEMINI_API_KEY
+      }
+    }
+  }
+}
+```
+This approach resolved previous issues where Claude Desktop was incorrectly expecting a `command` for HTTP server configurations and ensures that Claude Desktop can properly manage the lifecycle of the local MCP server process.
+
+### Running the Standalone MCP Server
+
+For testing and development, use the standalone MCP server:
+
+```bash
+python backend/standalone_mcp_server.py
+```
+
+This runs the MCP server on port 8001 without interfering with the main application.
+
+### Environmental Variables
+
+For complete functionality, ensure these environment variables are set:
+
+- `DATABASE_URL`: Connection string for PostgreSQL database
+- `GEMINI_API_KEY`: Google Gemini API key for context analysis
+- `JEAN_API_BASE_URL`: Base URL for the deployed service
+
+## Next Steps
+
+1. **Enhanced Testing**:
+   - Test with actual Claude Desktop deployment
+   - Create comprehensive test suite for MCP functionality
+   - Implement structured logging of MCP interactions
+
+2. **Additional Data Sources**:
+   - Extend beyond notes and GitHub (email, calendar, etc.)
+   - Add more third-party integrations
+
+3. **Documentation**:
+   - Create detailed user documentation
+   - Document the API for developers
+
+4. **User Experience**:
+   - Add more guidance on MCP usage patterns
+   - Improve error handling and user feedback
+   - Develop example prompts and workflows 
