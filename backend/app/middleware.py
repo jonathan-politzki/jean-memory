@@ -25,20 +25,27 @@ async def verify_api_key(request: Request, api_key: str = Depends(api_key_header
         raise HTTPException(status_code=401, detail="API key required")
 
     try:
-        # This is where you'd actually get the DB instance
-        # For now, we assume a function get_db exists or it's attached elsewhere
-        # db: ContextDatabase = request.app.state.db # Example if stored in app state
-
-        # Placeholder for validation logic - replace with actual DB call
-        # user_id = await db.validate_api_key(api_key)
-        async def _placeholder_validate(key):
-             # Replace with actual DB call using request.app.state.db.validate_api_key(key)
-             if key == "TEST_API_KEY": return 1
-             return None
-        user_id = await _placeholder_validate(api_key)
+        # --- TEMPORARY: Use placeholder validation directly ---
+        # db: Optional[ContextDatabase] = getattr(request.app.state, 'db', None)
+        # if db:
+        #     user_id = await db.validate_api_key(api_key)
+        # else:
+        #     logger.warning("DB not available for API key validation, using placeholder.")
+        #     if api_key == "TEST_API_KEY":
+        #         user_id = 1 # Placeholder user ID
+        #     else:
+        #         user_id = None
+        # Simplified placeholder check:
+        if api_key == "TEST_API_KEY":
+             user_id = 1 # Placeholder user ID
+             logger.info("Using placeholder API Key validation.")
+        else:
+             user_id = None
+             logger.warning("Placeholder validation failed for key: %s", api_key[:5]+"...")
+        # --- END TEMPORARY SECTION ---
 
         if not user_id:
-            logger.warning(f"Invalid API key received: {api_key[:5]}...")
+            logger.warning(f"Invalid API key received (placeholder check): {api_key[:5]}...")
             raise HTTPException(status_code=401, detail="Invalid API key")
 
         # Attach user_id to request state for use in endpoint handlers

@@ -14,31 +14,38 @@ logger = logging.getLogger(__name__)
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database and other resources on startup."""
+    """Initialize resources on startup (DB init temporarily skipped)."""
     logger.info("Starting JEAN MCP Server...")
-    try:
-        # Properly initialize the database instance stored in app state
-        db_instance: ContextDatabase = app.state.db
-        await db_instance.initialize()
-        logger.info("Database initialization complete.")
-        # Initialize other services if needed
-        # gemini_api_instance: GeminiAPI = app.state.gemini_api
-        # router_instance: ContextRouter = app.state.context_router
-        logger.info("Application startup sequence finished.")
-    except Exception as e:
-        logger.exception(f"FATAL: Error during application startup: {e}")
-        # Optionally, exit the application if critical components fail
-        # import sys
-        # sys.exit(1)
+    # --- TEMPORARY: Skip DB Initialization ---
+    # try:
+    #     db_instance: Optional[ContextDatabase] = getattr(app.state, 'db', None)
+    #     if db_instance:
+    #         await db_instance.initialize()
+    #         logger.info("Database initialization complete (if DB was configured).")
+    #     else:
+    #         logger.warning("DB instance not found in app state during startup.")
+    #     # Initialize other services if needed
+    #     logger.info("Application startup sequence finished.")
+    # except Exception as e:
+    #     logger.exception(f"FATAL: Error during application startup: {e}")
+    logger.warning("!!! Skipping Database initialization for testing !!!")
+    # --- END TEMPORARY SECTION ---
+    logger.info("Application startup sequence finished (without DB init).")
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Clean up resources on shutdown."""
+    """Clean up resources on shutdown (DB close temporarily skipped)."""
     logger.info("Shutting down JEAN MCP Server...")
-    db_instance: ContextDatabase = app.state.db
-    await db_instance.close()
-    logger.info("Database pool closed.")
-    logger.info("Application shutdown sequence finished.")
+    # --- TEMPORARY: Skip DB Close ---
+    # db_instance: Optional[ContextDatabase] = getattr(app.state, 'db', None)
+    # if db_instance:
+    #     await db_instance.close()
+    #     logger.info("Database pool closed (if DB was configured).")
+    # else:
+    #     logger.warning("DB instance not found in app state during shutdown.")
+    logger.warning("!!! Skipping Database closing for testing !!!")
+    # --- END TEMPORARY SECTION ---
+    logger.info("Application shutdown sequence finished (without DB close).")
 
 if __name__ == "__main__":
     logger.info(f"Starting server with Uvicorn on host 0.0.0.0 port 8000")

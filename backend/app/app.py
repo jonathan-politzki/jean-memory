@@ -1,13 +1,14 @@
 from fastapi import FastAPI, Request, HTTPException, Depends
 import logging
-from typing import Any
+from typing import Any, Optional
 
+# Use absolute imports from the 'backend' root directory
 from .config import settings
 from .models import MCPRequest, MCPResponse, MCPResult, MCPStoreParams, MCPRetrieveParams
 from .middleware import verify_api_key
-from ..routers.context_router import ContextRouter # Import the router
-# Assume db and gemini_api instances are created and managed in main.py
-# and potentially attached to app.state or passed via dependencies.
+from routers.context_router import ContextRouter # Changed from ..routers
+from database.context_storage import ContextDatabase # Changed from ..database
+from services.gemini_api import GeminiAPI # Changed from ..services
 
 # --- Logging Setup ---
 # Basic logging config - customize as needed
@@ -23,18 +24,14 @@ def create_app():
         dependencies=[Depends(verify_api_key)] # Apply API key verification globally
     )
 
-    # --- Placeholder for Dependency Initialization (actual init in main.py) ---
-    # In a real app, db and gemini_api would be initialized in main.py
-    # and made available, e.g., via app.state or a dependency injection system.
-    # For now, we'll instantiate placeholders here, but this should be refactored.
-    # This is NOT production-ready dependency management.
-    from ..database.context_storage import ContextDatabase
-    from ..services.gemini_api import GeminiAPI
-    app.state.db = ContextDatabase(settings.database_url)
-    app.state.gemini_api = GeminiAPI(settings.gemini_api_key)
-    app.state.context_router = ContextRouter(app.state.db, app.state.gemini_api)
-    logger.info("Placeholder DB, GeminiAPI, and ContextRouter initialized in app state.")
-
+    # --- TEMPORARY: Skip real DB/Gemini initialization for testing ---
+    app.state.db = None # No database connection
+    app.state.gemini_api = None # No Gemini client
+    # Pass None for dependencies; the router/endpoints will need to handle this
+    # Use the imported classes directly now
+    app.state.context_router = ContextRouter(db=None, gemini_api=None)
+    logger.warning("!!! Using placeholder dependencies (No DB, No Gemini) !!!")
+    # --- END TEMPORARY SECTION ---
 
     # --- API Endpoints ---
     @app.get("/health", tags=["System"])
@@ -63,23 +60,26 @@ def create_app():
         try:
             if method == "retrieve":
                 retrieve_params = MCPRetrieveParams(**params)
-                # Access router from app state (replace with proper dependency injection later)
                 router: ContextRouter = request.app.state.context_router
                 result_data = await router.route(user_id, retrieve_params.query)
                 return MCPResponse(result=MCPResult(**result_data))
 
             elif method == "store":
                 store_params = MCPStoreParams(**params)
-                # Access db from app state (replace with proper dependency injection later)
-                db: ContextDatabase = request.app.state.db
-                await db.store_context(
-                    user_id=user_id,
-                    context_type=store_params.context_type,
-                    content=store_params.content,
-                    source_identifier=store_params.source_identifier
-                )
-                # MCP store often doesn't require a content response, just success
-                return MCPResponse(result=MCPResult(type="success", content={"stored": True}))
+                db: Optional[ContextDatabase] = request.app.state.db
+                if db:
+                     await db.store_context(
+                         user_id=user_id,
+                         context_type=store_params.context_type,
+                         content=store_params.content,
+                         source_identifier=store_params.source_identifier
+                     )
+                     logger.info("Context stored (if DB was connected).")
+                     stored_status = True
+                else:
+                     logger.warning("DB not available, skipping context storage.")
+                     stored_status = False
+                return MCPResponse(result=MCPResult(type="success", content={"stored": stored_status}))
             else:
                 logger.warning(f"Unsupported MCP method received: {method}")
                 return MCPResponse(error={"code": -32601, "message": f"Method '{method}' not found"})
@@ -96,15 +96,19 @@ def create_app():
          # 1. Exchange code for tokens with Google
          # 2. Get user info (google_id, email) from Google
          # 3. Call db.create_or_get_user(google_id, email)
-         # 4. Redirect user back to frontend, potentially with a session token or status
-         # Placeholder response:
-         google_id = "placeholder_google_id_for_" + code
-         email = "placeholder@example.com"
-         db: ContextDatabase = request.app.state.db
-         user_id, api_key = await db.create_or_get_user(google_id, email)
+         # --- TEMPORARY: Skip DB interaction ---
+         db: Optional[ContextDatabase] = request.app.state.db
+         if db:
+             user_id, api_key = await db.create_or_get_user(google_id, email)
+             api_key_display = api_key[:5]+"..."
+         else:
+             logger.warning("DB not available, using placeholder user data.")
+             user_id = 999 # Placeholder
+             api_key_display = "TEST_API_KEY..."
+         # --- END TEMPORARY SECTION ---
 
          # In a real app, redirect to frontend with user info/status
-         return {"message": "Authentication placeholder successful", "user_id": user_id, "api_key": api_key[:5]+"..."}
+         return {"message": "Authentication placeholder successful", "user_id": user_id, "api_key": api_key_display}
 
     return app
 
