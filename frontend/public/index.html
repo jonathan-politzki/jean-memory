@@ -3,43 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JEAN - Personal Memory Layer</title>
+    <title>JEAN - Personal AI Memory</title>
     <link rel="stylesheet" href="css/styles.css">
     <!-- Google Sign-In API -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>JEAN</h1>
-            <p>Personal Memory Layer via Model Context Protocol</p>
-        </header>
-
-        <main>
-            <section class="welcome">
-                <h2>Welcome to JEAN</h2>
-                <p>JEAN enhances AI assistants like Claude Desktop or Cursor by providing your personal context through the Model Context Protocol (MCP).</p>
-                <p>Sign in with Google to get started.</p>
-            </section>
-
-            <section class="auth">
-                <div id="googleSignInButton"></div>
-                <div id="errorMessage" class="error-message"></div>
-            </section>
-
-            <section class="info">
-                <h3>How It Works</h3>
-                <ol>
-                    <li>Sign in with your Google account</li>
-                    <li>Get your unique MCP configuration</li>
-                    <li>Add the configuration to your Claude Desktop or Cursor setup</li>
-                    <li>Enjoy personalized context in your AI assistant</li>
-                </ol>
-            </section>
-        </main>
-
+    <div class="app-container">
+        <div class="login-card">
+            <div class="logo">
+                <div class="logo-icon">J</div>
+            </div>
+            
+            <div class="welcome-content">
+                <h1>JEAN</h1>
+                <p class="tagline">Your Personal AI Memory Layer</p>
+                
+                <div class="feature-list">
+                    <div class="feature-item">
+                        <span class="feature-icon">🧠</span>
+                        <span>Enhance AI assistants with your personal context</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🔄</span>
+                        <span>Connect multiple data sources for better recall</span>
+                    </div>
+                    <div class="feature-item">
+                        <span class="feature-icon">🔒</span>
+                        <span>Privacy-first design - your data stays yours</span>
+                    </div>
+                </div>
+                
+                <div class="auth-container">
+                    <p class="auth-label">Sign in to continue</p>
+                    <div id="googleSignInButton" class="google-signin-button"></div>
+                    <div id="errorMessage" class="error-message"></div>
+                </div>
+            </div>
+            
+            <div class="pulse-background"></div>
+        </div>
+        
         <footer>
-            <p>&copy; 2023 JEAN - Personal Memory Layer</p>
+            <p>Compatible with Claude Desktop, Cursor, and MCP-enabled AI tools</p>
         </footer>
     </div>
 
@@ -48,7 +54,7 @@
         function handleGoogleSignIn() {
             // Google OAuth client configuration
             // NOTE: You need to replace CLIENT_ID with your actual Google OAuth client ID
-            const googleClientId = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+            const googleClientId = '276083385911-pjnkq5lij5pqk4duu4rlmfssr5212q8p.apps.googleusercontent.com';
             
             google.accounts.id.initialize({
                 client_id: googleClientId,
@@ -59,22 +65,44 @@
             
             google.accounts.id.renderButton(
                 document.getElementById('googleSignInButton'),
-                { theme: 'outline', size: 'large', text: 'signin_with', shape: 'rectangular' }
+                { 
+                    theme: 'filled_blue',
+                    size: 'large',
+                    text: 'continue_with',
+                    shape: 'pill',
+                    width: '280'
+                }
             );
         }
 
         // Handle the Google Sign-In response
         function handleCredentialResponse(response) {
             // The response contains a credential with an ID token
-            const token = response.credential;
+            const id_token = response.credential; // Google now sends an id_token
             
-            // Redirect to the backend auth endpoint with the token
-            window.location.href = `/auth/google?token=${token}`;
+            // Show loading state
+            document.querySelector('.login-card').classList.add('loading');
+            
+            // Redirect to the frontend's proxy endpoint which expects a 'code' param
+            // We'll pass the id_token as the 'code' for simplicity in this flow
+            // NOTE: In a production app, you'd typically exchange the *authorization code* (not ID token) on the backend.
+            // But for this setup where the frontend handles the pop-up, passing the ID token is common.
+            // Our server.js expects 'code', so we send the token as 'code'.
+            window.location.href = `/auth/google/callback?code=${id_token}`;
         }
 
         // Initialize when the page loads
         window.onload = function() {
             handleGoogleSignIn();
+            
+            // Animation for the pulse background
+            const pulseBackground = document.querySelector('.pulse-background');
+            setInterval(() => {
+                pulseBackground.classList.add('pulse');
+                setTimeout(() => {
+                    pulseBackground.classList.remove('pulse');
+                }, 1500);
+            }, 3000);
         };
     </script>
 </body>

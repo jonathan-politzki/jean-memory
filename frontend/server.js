@@ -8,7 +8,7 @@ const axios = require('axios');
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3003;
+const PORT = process.env.PORT || 3005;
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8080';
 
 // Middleware

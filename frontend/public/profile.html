@@ -3,110 +3,219 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JEAN - Your MCP Configuration</title>
+    <title>JEAN - Your AI Memory Dashboard</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>JEAN</h1>
-            <p>Personal Memory Layer via Model Context Protocol</p>
-        </header>
+    <div class="dashboard-container">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-logo">
+                <div class="logo-icon">J</div>
+                <h1>JEAN</h1>
+            </div>
+            <div class="user-profile">
+                <div class="avatar" id="userInitial">U</div>
+                <span id="userEmail">user@example.com</span>
+            </div>
+        </div>
 
-        <main>
-            <section class="success">
-                <h2>Authentication Successful!</h2>
-                <p>Your JEAN account has been set up. You can now use your MCP configuration with Claude Desktop or Cursor.</p>
-            </section>
+        <!-- API Key Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Your MCP Configuration</h2>
+                <button class="copy-btn" id="copyConfigBtn">Copy Config</button>
+            </div>
+            
+            <p>Use this configuration with compatible AI assistants like Claude Desktop and Cursor.</p>
+            
+            <div class="api-key-display">
+                <pre id="mcpConfigDisplay">Loading your configuration...</pre>
+            </div>
+            
+            <div id="configCopyMessage"></div>
+        </div>
 
-            <section class="mcp-config">
-                <h3>Your MCP Configuration</h3>
-                <div class="config-card">
-                    <p>Copy and paste this configuration into your AI assistant's settings:</p>
-                    <pre id="mcpConfig">Loading configuration...</pre>
-                    <button id="copyButton" onclick="copyConfig()">Copy Configuration</button>
-                    <span id="copyMessage" class="copy-message"></span>
+        <!-- Context Sources -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Connect Your Context Sources</h2>
+            </div>
+            
+            <p>Add personal context from these sources to improve your AI assistant's memory:</p>
+            
+            <div class="source-grid">
+                <!-- GitHub -->
+                <div class="source-card" id="github-source">
+                    <div class="source-icon">📂</div>
+                    <div class="source-name">GitHub</div>
+                    <div class="source-status">Not connected</div>
                 </div>
-            </section>
-
-            <section class="instructions">
-                <h3>How to Use Your Configuration</h3>
-                <div class="instruction-card">
-                    <h4>Claude Desktop</h4>
-                    <ol>
-                        <li>Open Claude Desktop</li>
-                        <li>Go to Settings > Context Servers</li>
-                        <li>Click "Add Context Server"</li>
-                        <li>Paste your configuration</li>
-                        <li>Save and Restart Claude</li>
-                    </ol>
+                
+                <!-- Twitter/X -->
+                <div class="source-card" id="twitter-source">
+                    <div class="source-icon">🐦</div>
+                    <div class="source-name">Twitter/X</div>
+                    <div class="source-status">Not connected</div>
                 </div>
-                <div class="instruction-card">
-                    <h4>Cursor</h4>
-                    <ol>
-                        <li>Open Cursor</li>
-                        <li>Go to Settings > AI > Context Sources</li>
-                        <li>Click "Add MCP Server"</li>
-                        <li>Paste your configuration</li>
-                        <li>Save and Restart Cursor</li>
-                    </ol>
+                
+                <!-- Google Docs -->
+                <div class="source-card" id="gdocs-source">
+                    <div class="source-icon">📝</div>
+                    <div class="source-name">Google Docs</div>
+                    <div class="source-status">Not connected</div>
                 </div>
-            </section>
-        </main>
-
-        <footer>
-            <p>&copy; 2023 JEAN - Personal Memory Layer</p>
-        </footer>
+                
+                <!-- Notion -->
+                <div class="source-card" id="notion-source">
+                    <div class="source-icon">📔</div>
+                    <div class="source-name">Notion</div>
+                    <div class="source-status">Not connected</div>
+                </div>
+                
+                <!-- Add Note -->
+                <div class="source-card active" id="note-source">
+                    <div class="source-icon">✏️</div>
+                    <div class="source-name">Create Note</div>
+                    <div class="source-status status-connected">Available</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status Card -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">System Status</h2>
+            </div>
+            
+            <div id="statusInfo">
+                <p>✅ Backend connection: <span id="backendStatus">checking...</span></p>
+                <p>✅ MCP endpoint: <span id="mcpStatus">checking...</span></p>
+                <p>✅ User authentication: <span id="authStatus">checking...</span></p>
+            </div>
+        </div>
     </div>
 
     <script>
         // Parse URL parameters
         function getUrlParams() {
-            const params = new URLSearchParams(window.location.search);
-            return {
-                userId: params.get('user_id'),
-                apiKey: params.get('api_key')
-            };
-        }
-
-        // Format MCP config as JSON
-        function formatMcpConfig(apiKey) {
-            const config = {
-                mcp_server_url: window.location.origin.replace('3000', '8000') + '/mcp',
-                api_key: apiKey
-            };
-            return JSON.stringify(config, null, 2);
-        }
-
-        // Copy configuration to clipboard
-        function copyConfig() {
-            const configElement = document.getElementById('mcpConfig');
-            const textArea = document.createElement('textarea');
-            textArea.value = configElement.textContent;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
+            const params = {};
+            const queryString = window.location.search;
+            const urlParams = new URLSearchParams(queryString);
             
-            const message = document.getElementById('copyMessage');
-            message.textContent = 'Copied to clipboard!';
-            setTimeout(() => {
-                message.textContent = '';
-            }, 2000);
+            for (const [key, value] of urlParams) {
+                params[key] = value;
+            }
+            
+            return params;
         }
-
-        // Initialize when the page loads
-        window.onload = function() {
-            const { userId, apiKey } = getUrlParams();
-            if (!userId || !apiKey) {
+        
+        // Initialize the dashboard
+        async function initDashboard() {
+            const params = getUrlParams();
+            const userId = params.user_id;
+            const apiKey = params.api_key || 'TEST_API_KEY';
+            
+            if (!userId) {
+                // Redirect to the login page if no user ID is found
                 window.location.href = '/';
                 return;
             }
             
-            // Display the MCP configuration
-            const configElement = document.getElementById('mcpConfig');
-            configElement.textContent = formatMcpConfig(apiKey);
-        };
+            // Update user profile
+            document.getElementById('userInitial').textContent = 'U';
+            document.getElementById('userEmail').textContent = `User ${userId}`;
+            
+            // Fetch and display MCP configuration
+            try {
+                const response = await fetch(`/api/mcp-config?api_key=${apiKey}`);
+                const mcpConfig = await response.json();
+                
+                // Display the MCP configuration
+                const configJson = JSON.stringify(mcpConfig, null, 2);
+                document.getElementById('mcpConfigDisplay').textContent = configJson;
+                
+                // Set up copy button
+                const copyBtn = document.getElementById('copyConfigBtn');
+                copyBtn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(configJson).then(() => {
+                        const message = document.getElementById('configCopyMessage');
+                        message.textContent = '✅ Configuration copied to clipboard!';
+                        message.style.color = 'var(--secondary-color)';
+                        
+                        setTimeout(() => {
+                            message.textContent = '';
+                        }, 3000);
+                    });
+                });
+            } catch (error) {
+                console.error('Error fetching MCP config:', error);
+                document.getElementById('mcpConfigDisplay').textContent = 'Error loading configuration';
+            }
+            
+            // Check system status
+            checkSystemStatus();
+            
+            // Set up context source card clicks
+            setupSourceCards();
+        }
+        
+        // Check system status
+        async function checkSystemStatus() {
+            try {
+                // Check backend connection
+                const healthResponse = await fetch('/health');
+                const healthData = await healthResponse.json();
+                document.getElementById('backendStatus').textContent = healthData.status === 'ok' ? 'Connected' : 'Disconnected';
+                
+                // Check MCP endpoint (via backend proxy)
+                const backendUrl = 'http://localhost:8080';
+                const mcpResponse = await fetch(`${backendUrl}/health`, { mode: 'cors' });
+                document.getElementById('mcpStatus').textContent = mcpResponse.ok ? 'Available' : 'Unavailable';
+                
+                // Auth status is assumed to be OK if we're on this page
+                document.getElementById('authStatus').textContent = 'Authenticated';
+            } catch (error) {
+                console.error('Error checking system status:', error);
+                document.getElementById('backendStatus').textContent = 'Error';
+                document.getElementById('mcpStatus').textContent = 'Error';
+            }
+        }
+        
+        // Set up context source cards
+        function setupSourceCards() {
+            const sourceCards = document.querySelectorAll('.source-card');
+            
+            sourceCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const sourceName = card.querySelector('.source-name').textContent;
+                    const isConnected = card.querySelector('.source-status').classList.contains('status-connected');
+                    
+                    if (isConnected) {
+                        console.log(`${sourceName} is already connected`);
+                        return;
+                    }
+                    
+                    // Show "coming soon" alert for unimplemented sources
+                    if (sourceName !== 'Create Note') {
+                        alert(`${sourceName} integration coming soon!`);
+                        return;
+                    }
+                    
+                    // For the note source, we'll implement it directly
+                    if (sourceName === 'Create Note') {
+                        const note = prompt('Enter your note:');
+                        if (note) {
+                            alert('Note created! This will be stored in your personal memory.');
+                            // Here we would normally send this to the backend
+                        }
+                    }
+                });
+            });
+        }
+        
+        // Initialize when the page loads
+        window.onload = initDashboard;
     </script>
 </body>
 </html> 
