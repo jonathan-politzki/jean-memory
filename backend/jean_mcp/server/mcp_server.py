@@ -84,7 +84,8 @@ mcp = FastMCP(
     lifespan=app_lifespan,
     description="Personal Memory Layer for AI Assistants",
     middleware=[Middleware(MCPAuthMiddleware)],
-    path_prefix=""  # Explicitly set path prefix to empty string
+    path_prefix="",  # Explicitly set path prefix to empty string
+    system_prompts=["memory_system_prompt"]  # Include our memory system prompt by default
 )
 
 # Register MCP initialization function
@@ -92,15 +93,12 @@ def initialize_mcp_server():
     """Initialize and register all tools and resources."""
     logger.info("Initializing MCP tools and resources...")
     
-    # Import and register core memory tools
-    from jean_mcp.tools.core_memory_tools import register_core_memory_tools
-    register_core_memory_tools(mcp)
+    # Import and register simplified memory tools
+    from jean_mcp.tools.core_memory_tools import register_simplified_memory_tools
+    register_simplified_memory_tools(mcp)
+    logger.info("Simplified memory tools registered successfully")
     
-    # Comment out or remove old note_tools registration
-    # from jean_mcp.tools.note_tools import register_note_tools
-    # register_note_tools(mcp)
-    
-    # Import and register github tools
+    # Import and register github tools (still useful)
     from jean_mcp.tools.github_tools import register_github_tools
     register_github_tools(mcp)
     
@@ -108,15 +106,11 @@ def initialize_mcp_server():
     from jean_mcp.tools.auth_tools import register_auth_tools
     register_auth_tools(mcp)
     
-    # Import and register value extraction tools
-    from jean_mcp.tools.value_extraction_tools import register_value_extraction_tools
-    register_value_extraction_tools(mcp)
-    
     # Import and register prompts
     from jean_mcp.resources.prompts import register_prompts
     register_prompts(mcp)
     
-    logger.info("MCP server initialization complete")
+    logger.info("MCP server initialization complete with simplified memory tools")
     return mcp
 
 # This will be called when importing this module

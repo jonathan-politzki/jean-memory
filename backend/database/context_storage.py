@@ -371,4 +371,68 @@ class ContextDatabase:
                 return True # True if command executed, not necessarily if rows were deleted
         except Exception as e:
             logger.exception(f"Error deleting context for user {user_id}, type '{context_type}': {e}")
+            return False
+            
+    async def get_context_by_id(self, user_id: int, tenant_id: str, context_id: int) -> Optional[Dict[str, Any]]:
+        """Retrieve a specific context entry by ID, ensuring it belongs to the specified user and tenant."""
+        if not self.pool:
+            logger.error("Database pool not initialized in get_context_by_id")
+            return None
+        
+        try:
+            async with self.pool.acquire() as conn:
+                query = '''
+                    SELECT id, context_type, source_identifier, content, metadata, created_at, updated_at
+                    FROM context
+                    WHERE id = $1 AND user_id = $2 AND tenant_id = $3
+                '''
+                row = await conn.fetchrow(query, context_id, user_id, tenant_id)
+                
+                if not row:
+                    logger.warning(f"No context found with ID {context_id} for user {user_id}, tenant {tenant_id}")
+                    return None
+                
+                # Convert database row to Python dict
+                result = {
+                    'id': row['id'],
+                    'context_type': row['context_type'],
+                    'source_identifier': row['source_identifier'],
+                    'content': row['content'],
+                    'metadata': row['metadata'],
+                    'created_at': row['created_at'].isoformat() if row['created_at'] else None,
+                    'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None
+                }
+                
+                logger.info(f"Retrieved context entry with ID {context_id} for user {user_id}")
+                return result
+        except Exception as e:
+            logger.exception(f"Error retrieving context by ID {context_id} for user {user_id}: {e}")
+            return None
+    
+    async def delete_context_by_id(self, user_id: int, tenant_id: str, context_id: int) -> bool:
+        """Delete a specific context entry by ID, ensuring it belongs to the specified user and tenant."""
+        if not self.pool:
+            logger.error("Database pool not initialized in delete_context_by_id")
+            return False
+        
+        try:
+            async with self.pool.acquire() as conn:
+                # Delete with security check (user_id and tenant_id)
+                result = await conn.execute(
+                    "DELETE FROM context WHERE id = $1 AND user_id = $2 AND tenant_id = $3",
+                    context_id, user_id, tenant_id
+                )
+                
+                # Check if anything was deleted
+                deleted_count = int(result.split()[1]) if result else 0
+                success = deleted_count > 0
+                
+                if success:
+                    logger.info(f"Successfully deleted context entry with ID {context_id} for user {user_id}")
+                else:
+                    logger.warning(f"Failed to delete context entry with ID {context_id} - entry not found or not owned by user {user_id}")
+                
+                return success
+        except Exception as e:
+            logger.exception(f"Error deleting context entry with ID {context_id} for user {user_id}: {e}")
             return False 

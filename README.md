@@ -1,4 +1,6 @@
-# JEAN - AI Memory Layer via MCP
+# JEAN Memory - Personal Memory Layer for AI Assistants
+
+> **Note**: Comprehensive documentation is now available in the [docs directory](docs/). Check [docs/README.md](docs/README.md) for a guide to all documentation.
 
 JEAN (Just Enhance AI with Notes) is a personal memory layer for AI assistants that implements the [Model Context Protocol (MCP)](https://www.anthropic.com/news/model-context-protocol).
 
