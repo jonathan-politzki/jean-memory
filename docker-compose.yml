@@ -32,6 +32,9 @@ services:
       - JEAN_API_BASE_URL=http://localhost:8000
       - LOG_LEVEL=INFO
       - TENANT_ISOLATION=strict
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
     depends_on:
       postgres:
         condition: service_healthy

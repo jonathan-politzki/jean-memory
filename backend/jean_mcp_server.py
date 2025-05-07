@@ -88,13 +88,58 @@ def run_http_server(host="0.0.0.0", port=8001):
     logger.info(f"Starting MCP server on {host}:{port}")
     logger.info(f"Using tenant ID: {tenant_id}")
     
-    # Run the MCP server using uvicorn
-    uvicorn.run(
-        "jean_mcp.server.mcp_server:mcp.sse_app()",
-        host=host,
-        port=port,
-        reload=True
-    )
+    # Fix: Import the mcp server explicitly here to inspect it
+    try:
+        # First try importing the module to examine it
+        from jean_mcp.server import mcp_server
+        from jean_mcp.server.mcp_server import mcp
+        
+        # Log available attributes to help troubleshoot
+        logger.info(f"mcp_server attributes: {dir(mcp_server)}")
+        logger.info(f"mcp attributes: {dir(mcp)}")
+        
+        # Try different approaches to get the app
+        if hasattr(mcp, 'app'):
+            # If mcp has an 'app' attribute, use that
+            logger.info("Using mcp.app")
+            uvicorn.run(
+                "jean_mcp.server.mcp_server:mcp.app",
+                host=host,
+                port=port,
+                reload=True
+            )
+        elif hasattr(mcp_server, 'app'):
+            # If mcp_server has an 'app' attribute, use that
+            logger.info("Using mcp_server.app")
+            uvicorn.run(
+                "jean_mcp.server.mcp_server:mcp_server.app",
+                host=host,
+                port=port,
+                reload=True
+            )
+        elif hasattr(mcp, 'sse_app') and callable(mcp.sse_app):
+            # If sse_app is callable (not just an attribute)
+            logger.info("Using mcp.sse_app()")
+            mcp_app = mcp.sse_app()
+            uvicorn.run(
+                mcp_app,
+                host=host,
+                port=port,
+                reload=True
+            )
+        else:
+            # As a last resort, try the original approach
+            logger.info("Falling back to original approach")
+            uvicorn.run(
+                "jean_mcp.server.mcp_server:mcp",
+                host=host,
+                port=port,
+                reload=True
+            )
+    except Exception as e:
+        logger.error(f"Error starting MCP server: {str(e)}")
+        logger.exception("Stack trace:")
+        raise
 
 def main():
     """Parse arguments and run the appropriate server mode."""
