@@ -146,4 +146,59 @@ def register_prompts(mcp: FastMCP):
            - Historical conversation context
            
         Present the most relevant information concisely and explain how it relates to the user's question.
+        """
+
+    @mcp.prompt(name="proactive_memory_creation_guidance")
+    def proactive_memory_creation_guidance() -> str:
+        """
+        Guides the AI to proactively identify and save significant user statements,
+        preferences, or important information using the create_jean_memory_entry tool.
+        This prompt is for the AI's internal guidance.
+        """
+        return """
+        When interacting with the user, pay close attention to statements that reveal:
+        - Strong preferences (e.g., "I love...", "My favorite is...", "I always prefer...")
+        - dislikes (e.g., "I hate...", "I never want...")
+        - Important facts about the user (e.g., "My project is due next week", "I work as a software engineer")
+        - Explicit requests to remember something, even if not phrased as a direct command to create a note.
+
+        If you identify such a statement, you SHOULD consider it an important piece of information to retain.
+        To do this, you MUST use the 'create_jean_memory_entry' tool.
+
+        When calling 'create_jean_memory_entry':
+        1.  Set 'context_type':
+            - Use 'user_preference' for likes, dislikes, favorites, etc.
+            - Use 'explicit_note' or a more specific type if appropriate for factual information or tasks.
+        2.  Populate 'content':
+            - 'preference': A concise summary of the preference (e.g., "User's favorite animal is dogs").
+            - 'statement' or 'information': A concise summary of the fact (e.g., "User's project deadline is next week").
+            - Include the user's direct quote if it's succinct and captures the essence.
+        3.  Populate 'content.importance':
+            - Use 'high' if the user uses strong emotional language (love, hate, favorite), repeats the information, or explicitly states its importance.
+            - Use 'medium' for general statements of preference or fact.
+            - Use 'low' for minor details, if deemed worth saving at all.
+        4.  Populate 'content.details':
+            - Provide context: Briefly explain why this information is being saved.
+            - Include the user's exact phrasing of the key statement.
+            - Example: "User stated 'dogs are my favorite animal' after multiple previous mentions of liking dogs."
+        5.  For 'source_identifier', you can generate a unique ID or let the system handle it if you're unsure (e.g., "conversation_auto_note_[timestamp]").
+        6.  'metadata' can be used for additional tags or categorizations if obvious (e.g., {"category": "personal_preference"}).
+
+        Example Scenario:
+        User: "Wow, I absolutely love how responsive this UI is! It's fantastic."
+        Your internal action: Decide this is a 'high' importance preference.
+        Your tool call:
+        create_jean_memory_entry(
+            context_type='user_preference',
+            content={
+                'preference': 'User loves responsive UIs',
+                'importance': 'high',
+                'details': "User expressed strong positive sentiment: 'Wow, I absolutely love how responsive this UI is! It's fantastic.'"
+            },
+            source_identifier='conversation_preference_ui_responsiveness_[timestamp]'
+        )
+        Your response to user (after initiating tool call): "I'm glad you love the responsive UI! I'll remember that."
+
+        DO NOT just say you will remember. If the criteria above are met, the 'create_jean_memory_entry' tool call is the way you remember.
+        If the user points out you've forgotten something they consider important, and it aligns with these guidelines, apologize and immediately use 'create_jean_memory_entry' to save it.
         """ 
