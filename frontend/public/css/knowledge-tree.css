@@ -1,0 +1,154 @@
+/*
+    Styles specific to the Knowledge Tree page (knowledge-tree.html).
+    These styles assume that main.css and its .dark-mode class are active
+    for general page layout, sidebar, and base dark theme.
+*/
+
+/* Ensure the main content area for the graph takes up available space */
+.knowledge-tree-main {
+    display: flex;
+    flex: 1;
+    overflow: hidden; /* Important for D3 SVG rendering */
+    /* The background color for this specific main area should come from main.css .dark-mode if it matches,
+       or be defined here if it needs to be a specific shade of dark different from the default page body. */
+    /* background-color: #1a1a1a; */ /* Example: if a specific dark bg is needed here */
+}
+
+#graph-container {
+    flex-grow: 1;
+    position: relative; /* For positioning controls or other overlays */
+    /* background-color: #1e1e1e; */ /* Specific dark background for the graph area itself. 
+                                      Ensure this contrasts well with main.css dark mode body/page wrapper. */
+}
+
+#graph-svg {
+    display: block; /* Remove extra space below SVG */
+    width: 100%;
+    height: 100%;
+}
+
+/* Node Details Panel - styled for dark mode */
+.node-details-panel {
+    width: 300px;
+    background-color: #252525; /* Dark background, can be from main.css variables if available */
+    color: #e0e0e0;            /* Light text, can be from main.css variables */
+    padding: 20px;
+    border-left: 1px solid #333; /* Dark border, consistent with dark theme */
+    overflow-y: auto;
+    display: none; /* Hidden by default, shown via JS */
+}
+
+.node-details-panel h3 {
+    margin-top: 0;
+    color: #4a90e2; /* A highlight color, check for consistency with main.css theme accents */
+    margin-bottom: 15px;
+}
+
+.node-details-panel p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+
+.node-details-panel p strong {
+    color: #b0b0b0; /* Slightly less prominent than main text but readable */
+}
+
+/* Controls for the graph (zoom, reset) - styled for dark mode */
+.controls {
+    position: absolute;
+    top: 15px; /* Adjusted for better spacing */
+    right: 15px; /* Adjusted for better spacing */
+    background: rgba(45, 55, 72, 0.85); /* Semi-transparent dark background */
+    padding: 8px;
+    border-radius: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    z-index: 10;
+    display: flex;
+    gap: 8px;
+}
+
+.controls button {
+    background-color: #4a6cff; /* Primary action color, check main.css variable */
+    color: white;
+    border: none;
+    padding: 7px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.controls button:hover {
+    background-color: #3a5cee; /* Darker shade for hover, check main.css variable */
+}
+
+.controls button i {
+    font-size: 1rem; /* Icon size */
+}
+
+/* D3 Graph Specific Styling - Nodes and Links for Dark Theme */
+.node circle {
+    stroke: #76a0db; /* A slightly brighter stroke for nodes on dark background */
+    stroke-width: 1.5px;
+    transition: r 0.2s ease, fill 0.2s ease, stroke 0.2s ease;
+}
+
+.node circle.selected {
+    stroke: #4a90e2; /* Highlight color for selected node */
+    stroke-width: 3px;
+}
+
+.node circle:hover {
+    r: 10px; /* Enlarge on hover */
+    stroke: #90caf9; /* Brighter stroke on hover */
+}
+
+.node text {
+    font-size: 10px;
+    fill: #c0c0c0; /* Light gray text for labels, good contrast on dark */
+    pointer-events: none;
+    text-anchor: middle;
+    dy: -12px; /* Adjusted offset for better readability from node */
+}
+
+.link {
+    stroke-opacity: 0.5;
+    stroke-width: 1.5px;
+    stroke: #555; /* Link color, ensure visible on graph background */
+}
+
+/* Styling for loading/error messages within the SVG */
+#graph-svg text.loading-message, 
+#graph-svg text.error-message {
+    font-size: 16px;
+    fill: #aaa; /* Light gray, easily readable */
+    text-anchor: middle;
+}
+
+#graph-svg text.fallback-warning-message {
+    font-size: 12px;
+    fill: #e7a000; /* Amber/Orange for warning */
+    text-anchor: middle;
+    font-weight: 500;
+}
+
+/* Sidebar Formatting Consistency Overrides for Knowledge Tree Page */
+/* Ensures sidebar link padding and font styles match the intended base style from main.css */
+
+.sidebar .nav-links a {
+    padding: 10px 20px; /* Crucial for consistent spacing, should match main.css base */
+    font-size: 14px;    /* Should match main.css base */
+    font-weight: 500; /* Should match main.css base */
+    /* Other flex properties (display:flex, gap) and colors are expected to be correctly inherited or set by main.css .dark-mode rules */
+}
+
+/* 
+  The .sidebar .logo h1, .sidebar .nav-links li.active a, and .sidebar .sidebar-footer a 
+  are generally styled by main.css, with .dark-mode overrides for thematic colors.
+  The rule above primarily targets the general nav links' structural padding and font 
+  if it's not being applied as expected on this specific page.
+*/ 

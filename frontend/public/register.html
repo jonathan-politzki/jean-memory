@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - JEAN Memory</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/auth.js"></script>
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="logo">
+                    <div class="logo-icon">J</div>
+                    <h1>JEAN Memory</h1>
+                </div>
+                <h2>Create Account</h2>
+                <p>Join JEAN Memory to supercharge your digital brain.</p>
+            </div>
+            
+            <div class="auth-body">
+                <div class="auth-message" id="auth-message"></div>
+                
+                <!-- Social Login Options -->
+                <div class="social-login">
+                    <button class="social-btn google-btn" id="google-register">
+                        <i class="ti ti-brand-google"></i>
+                        Sign up with Google
+                    </button>
+                    <button class="social-btn github-btn" id="github-register">
+                        <i class="ti ti-brand-github"></i>
+                        Sign up with GitHub
+                    </button>
+                    <button class="social-btn twitter-btn" id="twitter-register">
+                        <i class="ti ti-brand-twitter"></i>
+                        Sign up with Twitter
+                    </button>
+                </div>
+                
+                <div class="auth-divider">
+                    <span>Or sign up with email</span>
+                </div>
+                
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <input type="text" id="fullName" name="fullName" placeholder="Enter your full name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="Create a password" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm your password" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary btn-block">Sign Up</button>
+                    </div>
+                </form>
+                
+                <div class="auth-footer">
+                    <p>Already have an account? <a href="login.html">Sign In</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (AuthManager.isLoggedIn()) {
+                window.location.href = 'dashboard.html';
+                return;
+            }
+            
+            const registerForm = document.getElementById('register-form');
+            const authMessage = document.getElementById('auth-message');
+            const googleRegisterBtn = document.getElementById('google-register');
+            const githubRegisterBtn = document.getElementById('github-register');
+            const twitterRegisterBtn = document.getElementById('twitter-register');
+
+            registerForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const fullName = document.getElementById('fullName').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                authMessage.innerHTML = ''; // Clear previous messages
+                authMessage.className = 'auth-message';
+
+                if (password !== confirmPassword) {
+                    authMessage.innerHTML = 'Passwords do not match.';
+                    authMessage.className = 'auth-message error';
+                    showNotification('Passwords do not match.', 'error');
+                    return;
+                }
+
+                // Basic password strength (example: min 8 chars)
+                if (password.length < 8) {
+                    authMessage.innerHTML = 'Password must be at least 8 characters long.';
+                    authMessage.className = 'auth-message error';
+                    showNotification('Password must be at least 8 characters long.', 'error');
+                    return;
+                }
+                
+                authMessage.innerHTML = 'Creating account...';
+                authMessage.className = 'auth-message info';
+                showNotification('Creating account...', 'info');
+                
+                try {
+                    // Replace with your actual API call for registration
+                    // const response = await axios.post('/api/auth/register', { fullName, email, password });
+                    
+                    // For demonstration, we'll simulate a successful registration and login
+                    // In a real app, the backend would create the user and typically return a token or session
+                    console.log('Simulating registration for:', { fullName, email, password });
+                    
+                    // Simulate creating a new user object (as if returned by backend)
+                    const newUser = {
+                        userId: 'newuser-' + Date.now(), // Simple unique ID for demo
+                        apiKey: 'demo-api-key-' + Date.now(), // Simple unique API key
+                        name: fullName,
+                        email: email,
+                        avatar: '', // Placeholder for avatar
+                        provider: 'email'
+                    };
+
+                    // Log the new user in directly after "successful" registration for demo
+                    AuthManager.login(newUser);
+                    
+                    authMessage.innerHTML = 'Account created successfully! Redirecting...';
+                    authMessage.className = 'auth-message success';
+                    showNotification('Account created! Welcome!', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html'; // Redirect to dashboard or a welcome page
+                    }, 1500);
+                    
+                } catch (error) {
+                    console.error('Registration error:', error);
+                    authMessage.innerHTML = (error.response && error.response.data && error.response.data.message) ? error.response.data.message : 'An error occurred during registration. Please try again.';
+                    authMessage.className = 'auth-message error';
+                    showNotification('Registration failed. Please try again.', 'error');
+                }
+            });
+
+            // Placeholder for Social Sign Up (similar to login, redirects for OAuth flow)
+            googleRegisterBtn.addEventListener('click', function() {
+                showNotification('Redirecting to Google Sign-Up...', 'info');
+                window.location.href = 'http://localhost:8080/auth/google/login'; // Using same endpoint as login
+            });
+            
+            githubRegisterBtn.addEventListener('click', function() {
+                showNotification('Redirecting to GitHub Sign-Up...', 'info');
+                window.location.href = 'http://localhost:8080/auth/github/login'; // Using same endpoint as login
+            });
+            
+            twitterRegisterBtn.addEventListener('click', function() {
+                showNotification('Redirecting to Twitter Sign-Up...', 'info');
+                window.location.href = 'http://localhost:8080/auth/twitter/login'; // Using same endpoint as login
+            });
+        });
+    </script>
+</body>
+</html> 

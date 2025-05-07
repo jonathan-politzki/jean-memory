@@ -4,7 +4,7 @@ import asyncio
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, Header, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from typing import Optional, Dict, Any, List
 import os
 import json
@@ -21,14 +21,13 @@ import database
 from database.context_storage import ContextDatabase # Only for typing
 
 # Import MCP server from our jean_mcp package
-from jean_mcp.server import mcp
-# Import MCP configuration routes
-from jean_mcp.server.mcp_config import router as mcp_config_router
+# from jean_mcp.server.mcp_server import mcp
+# from jean_mcp.server.mcp_config import router as mcp_config_router
 
-from .database import Database
 from .auth import verify_api_key, get_user_id
 from .routers.github_oauth_router import GitHubOAuthRouter
 from .routers.obsidian_router import ObsidianRouter
+from .routers.google_auth_router import GoogleAuthRouter
 from .gemini_api import GeminiAPI
 
 logger = logging.getLogger(__name__)
@@ -64,23 +63,21 @@ async def shutdown_event():
     logger.info("Application shutdown sequence finished.")
 
 # Mount the MCP server at the /mcp path
-mcp_app = mcp.sse_app()
-app.mount("/mcp", mcp_app)
-logger.info("MCP server mounted at /mcp")
+logger.info("MCP server integration temporarily disabled")
 
 # Include MCP configuration routes
-app.include_router(mcp_config_router)
-logger.info("MCP configuration routes included at /mcp-config")
+logger.info("MCP configuration routes temporarily disabled")
 
 # Initialize database
-db = Database()
+# db = Database()
 
 # Initialize API services
 gemini_api = GeminiAPI(api_key=os.getenv("GEMINI_API_KEY"))
 
 # Initialize routers
-github_router = GitHubOAuthRouter(db=db)
-obsidian_router = ObsidianRouter(db=db, gemini_api=gemini_api)
+github_router = GitHubOAuthRouter()
+obsidian_router = ObsidianRouter(gemini_api=gemini_api)
+google_auth_router = GoogleAuthRouter()
 
 @app.get("/health")
 async def health_check():
@@ -257,6 +254,49 @@ async def disconnect_obsidian(request: Request):
         raise HTTPException(status_code=400, detail="User ID is required")
     
     result = await obsidian_router.disconnect(user_id)
+    return result
+
+# Google Auth Integration Routes
+@app.get("/api/auth/google/url")
+async def get_google_oauth_url(user_id: str = None):
+    """Get Google OAuth URL for authorization"""
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    
+    result = await google_auth_router.get_oauth_url(user_id)
+    return result
+
+@app.get("/api/auth/google/callback")
+async def handle_google_oauth_callback(code: str, state: str):
+    """Handle Google OAuth callback"""
+    result = await google_auth_router.handle_oauth_callback(code, state)
+    if not result.get("success"):
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": result.get("message", "Authentication failed")}
+        )
+    
+    if "redirect" in result:
+        return RedirectResponse(url=result["redirect"])
+    
+    # Return the result as JSON if no redirect
+    return result
+
+@app.get("/api/auth/google/status")
+async def check_google_status(user_id: str):
+    """Check Google connection status"""
+    result = await google_auth_router.check_connection_status(user_id)
+    return result
+
+@app.post("/api/auth/google/disconnect")
+async def disconnect_google(request: Request):
+    """Disconnect Google integration"""
+    data = await request.json()
+    user_id = data.get("userId")
+    if not user_id:
+        raise HTTPException(status_code=400, detail="User ID is required")
+    
+    result = await google_auth_router.disconnect(user_id)
     return result
 
 # Knowledge Graph API

@@ -131,3 +131,34 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Environment Variables
+
+This application requires several environment variables to be set for proper operation:
+
+### Required Environment Variables
+
+- `DATABASE_URL`: PostgreSQL connection string
+- `GEMINI_API_KEY`: Google Gemini API key
+
+### Google OAuth Environment Variables
+
+For Google authentication to work, you need to set up the following:
+
+- `GOOGLE_CLIENT_ID`: Your Google OAuth Client ID 
+- `GOOGLE_CLIENT_SECRET`: Your Google OAuth Client Secret
+- `GOOGLE_REDIRECT_URI`: Redirect URI (default: http://localhost:3005/auth/google/callback)
+
+### Optional Environment Variables
+
+- `JEAN_API_KEY`: API key for authentication (defaults to allowing any non-empty key in dev)
+- `JEAN_USER_ID`: Default user ID (default: "1")
+- `JEAN_TENANT_ID`: Default tenant ID (default: "default")
+- `JEAN_API_BASE_URL`: Base URL for the API (default: http://localhost:8000)
+- `MCP_LOG_LEVEL`: Logging level for MCP server (default: INFO)
+- `MCP_LOG_TO_STDERR`: Whether to log to stderr (default: true)
+
+## Setup Instructions
+
+1. Create a `.env` file in the project root with the required environment variables.
+2. Run the application using Docker Compose: `docker-compose up`
