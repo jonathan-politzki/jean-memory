@@ -8,10 +8,10 @@
         ],
         "env": {
           "JEAN_USER_ID": "1",
-          "JEAN_API_KEY": "test-key",
-          "DATABASE_URL": "postgresql://postgres:postgres@localhost:5433/postgres",
-          "GEMINI_API_KEY": "AIzaSyBX4NRoTz-DfABKRtbf_I3DoC7h_bMOGiQ" 
+          "JEAN_API_KEY": "your_jean_api_key_here",
+          "DATABASE_URL": "postgresql://user:password@host:port/database",
+          "GEMINI_API_KEY": "YOUR_GEMINI_API_KEY_HERE" 
         }
       }
     }
-  }
+  } 

@@ -76,4 +76,10 @@ temp/
 .tmp
 
 # Local development files
-docker-compose.override.yml 
+docker-compose.override.yml
+
+# Cursor IDE specific files
+# .cursor/ # Keep this commented out or remove if you want to commit .cursor files like mcp.json.example
+
+# Ignore the actual MCP configuration with secrets
+.cursor/mcp.json 
