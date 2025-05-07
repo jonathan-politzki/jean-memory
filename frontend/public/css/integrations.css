@@ -1,0 +1,326 @@
+/* Integrations Page Styles */
+
+.integration-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding: 1rem 0;
+}
+
+.integration-card {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: box-shadow 0.3s ease;
+}
+
+.integration-card:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.integration-header {
+    display: flex;
+    align-items: center;
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #eaeaea;
+    position: relative;
+}
+
+.integration-logo {
+    width: 48px;
+    height: 48px;
+    margin-right: 1rem;
+    object-fit: contain;
+}
+
+.integration-header h2 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.4rem;
+    color: #333;
+}
+
+.integration-header p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.connection-status {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background-color: #f0f0f0;
+    color: #777;
+}
+
+.connection-status.connected {
+    background-color: #e6f7e6;
+    color: #2e7d32;
+}
+
+.integration-body {
+    padding: 1.5rem;
+}
+
+.hidden {
+    display: none;
+}
+
+.form-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.form-section:last-child {
+    border-bottom: none;
+}
+
+.form-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: #444;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #555;
+}
+
+.form-group input[type="text"] {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.form-group small {
+    display: block;
+    margin-top: 0.25rem;
+    color: #777;
+    font-size: 0.8rem;
+}
+
+.checkbox-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.checkbox-group label {
+    display: flex;
+    align-items: center;
+    font-weight: normal;
+    margin-bottom: 0;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+.button-group {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn-primary {
+    background-color: #4a6cff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #3a5cee;
+}
+
+.btn-secondary {
+    background-color: #f0f2ff;
+    color: #4a6cff;
+    border: 1px solid #d8deff;
+}
+
+.btn-secondary:hover {
+    background-color: #e8ecff;
+}
+
+.btn-danger {
+    background-color: #fff0f0;
+    color: #e53935;
+    border: 1px solid #ffd8d8;
+}
+
+.btn-danger:hover {
+    background-color: #ffe8e8;
+}
+
+/* GitHub specific styles */
+.github-user-info {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+}
+
+.avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin-right: 1rem;
+}
+
+.user-profile h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+}
+
+.user-profile p {
+    margin: 0 0 0.5rem 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.user-profile a {
+    color: #4a6cff;
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+
+.user-profile a:hover {
+    text-decoration: underline;
+}
+
+.repo-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 0.5rem;
+}
+
+.repo-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.repo-item:last-child {
+    border-bottom: none;
+}
+
+.repo-name {
+    font-weight: 500;
+    margin-left: 0.5rem;
+}
+
+.repo-details {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.repo-language {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.synced-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    background-color: #e6f7e6;
+    color: #2e7d32;
+    border-radius: 10px;
+}
+
+.loading {
+    padding: 1rem;
+    text-align: center;
+    color: #888;
+    font-style: italic;
+}
+
+/* Obsidian specific styles */
+.obsidian-info {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.vault-info h4 {
+    margin: 1rem 0 0.25rem 0;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.vault-info p {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #333;
+    word-break: break-all;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    .integration-header {
+        flex-direction: column;
+        text-align: center;
+        padding-top: 2.5rem;
+    }
+    
+    .integration-logo {
+        margin-right: 0;
+        margin-bottom: 1rem;
+    }
+    
+    .connection-status {
+        top: 1rem;
+        right: 1rem;
+    }
+    
+    .button-group {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+} 

@@ -3,107 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JEAN - Personal AI Memory</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <!-- Google Sign-In API -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <title>JEAN Memory - Your Personal AI Memory Layer</title>
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/notifications.js"></script>
+    <script src="js/auth.js"></script>
+    <style>
+        body {
+            background-color: #f0f2fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        .landing-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            width: 90%;
+            max-width: 500px;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        
+        .logo-container {
+            margin-bottom: 20px;
+        }
+        
+        .logo-circle {
+            width: 80px;
+            height: 80px;
+            background-color: #6a45ff;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: bold;
+            margin: 0 auto;
+        }
+        
+        .brand-name {
+            font-size: 48px;
+            font-weight: bold;
+            color: #6a45ff;
+            margin: 16px 0;
+        }
+        
+        .tagline {
+            font-size: 20px;
+            color: #555;
+            margin-bottom: 30px;
+        }
+        
+        .benefits {
+            margin: 40px 0;
+            text-align: left;
+            padding: 0 20px;
+        }
+        
+        .benefit {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .benefit-icon {
+            font-size: 24px;
+            min-width: 32px;
+            text-align: center;
+        }
+        
+        .benefit-text {
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .login-section {
+            margin-top: 40px;
+        }
+        
+        .login-text {
+            color: #555;
+            margin-bottom: 20px;
+        }
+        
+        .social-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 80%;
+            max-width: 300px;
+            margin: 0 auto 16px;
+            padding: 12px 20px;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .google-btn {
+            background-color: #4285f4;
+            color: white;
+        }
+        
+        .google-btn:hover {
+            background-color: #3367d6;
+        }
+        
+        .github-btn {
+            background-color: #24292e;
+            color: white;
+        }
+        
+        .github-btn:hover {
+            background-color: #1D2125;
+        }
+        
+        .twitter-btn {
+            background-color: #1DA1F2;
+            color: white;
+        }
+        
+        .twitter-btn:hover {
+            background-color: #0d8ed9;
+        }
+        
+        .or-divider {
+            display: flex;
+            align-items: center;
+            width: 80%;
+            max-width: 300px;
+            margin: 20px auto;
+        }
+        
+        .or-divider::before,
+        .or-divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .or-divider span {
+            padding: 0 10px;
+            font-size: 14px;
+            color: #777;
+        }
+        
+        .email-btn {
+            background-color: white;
+            border: 1px solid #ddd;
+            color: #333;
+        }
+        
+        .email-btn:hover {
+            background-color: #f8f8f8;
+        }
+        
+        .footer-text {
+            margin-top: 40px;
+            font-size: 14px;
+            color: #777;
+        }
+    </style>
 </head>
 <body>
-    <div class="app-container">
-        <div class="login-card">
-            <div class="logo">
-                <div class="logo-icon">J</div>
-            </div>
-            
-            <div class="welcome-content">
-                <h1>JEAN</h1>
-                <p class="tagline">Your Personal AI Memory Layer</p>
-                
-                <div class="feature-list">
-                    <div class="feature-item">
-                        <span class="feature-icon">🧠</span>
-                        <span>Enhance AI assistants with your personal context</span>
-                    </div>
-                    <div class="feature-item">
-                        <span class="feature-icon">🔄</span>
-                        <span>Connect multiple data sources for better recall</span>
-                    </div>
-                    <div class="feature-item">
-                        <span class="feature-icon">🔒</span>
-                        <span>Privacy-first design - your data stays yours</span>
-                    </div>
-                </div>
-                
-                <div class="auth-container">
-                    <p class="auth-label">Sign in to continue</p>
-                    <div id="googleSignInButton" class="google-signin-button"></div>
-                    <div id="errorMessage" class="error-message"></div>
-                </div>
-            </div>
-            
-            <div class="pulse-background"></div>
+    <div class="landing-card">
+        <div class="logo-container">
+            <div class="logo-circle">J</div>
         </div>
         
-        <footer>
-            <p>Compatible with Claude Desktop, Cursor, and MCP-enabled AI tools</p>
-        </footer>
-    </div>
-
-    <script>
-        // Google Sign-In configuration
-        function handleGoogleSignIn() {
-            // Google OAuth client configuration
-            // NOTE: You need to replace CLIENT_ID with your actual Google OAuth client ID
-            const googleClientId = '276083385911-pjnkq5lij5pqk4duu4rlmfssr5212q8p.apps.googleusercontent.com';
+        <h1 class="brand-name">JEAN</h1>
+        <p class="tagline">Your Personal AI Memory Layer</p>
+        
+        <div class="benefits">
+            <div class="benefit">
+                <div class="benefit-icon">🧠</div>
+                <div class="benefit-text">Enhance AI assistants with your personal context</div>
+            </div>
             
-            google.accounts.id.initialize({
-                client_id: googleClientId,
-                callback: handleCredentialResponse,
-                auto_select: false,
-                cancel_on_tap_outside: true
+            <div class="benefit">
+                <div class="benefit-icon">🔄</div>
+                <div class="benefit-text">Connect multiple data sources for better recall</div>
+            </div>
+            
+            <div class="benefit">
+                <div class="benefit-icon">🔒</div>
+                <div class="benefit-text">Privacy-first design - your data stays yours</div>
+            </div>
+        </div>
+        
+        <div class="login-section">
+            <p class="login-text">Sign in to continue</p>
+            
+            <button id="google-login" class="social-btn google-btn">
+                <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <g fill="#FFFFFF">
+                        <path d="M19.6 10.2c0-.7-.1-1.4-.2-2H10v3.8h5.4c-.2 1.2-.9 2.2-2 2.9v2.4h3.2c1.9-1.8 3-4.3 3-7.1z"/>
+                        <path d="M10 20c2.7 0 4.9-.9 6.6-2.4l-3.2-2.4c-.9.6-2 1-3.3 1-2.6 0-4.7-1.7-5.5-4h-3.3v2.5c1.6 3.2 5 5.3 8.7 5.3z"/>
+                        <path d="M4.5 12.2c-.2-.6-.3-1.2-.3-1.9 0-.7.1-1.3.3-1.9v-2.5h-3.3c-.7 1.3-1.1 2.7-1.1 4.4 0 1.7.4 3.1 1.1 4.4l3.3-2.5z"/>
+                        <path d="M10 4.2c1.4 0 2.7.5 3.8 1.4l2.8-2.8c-1.7-1.6-4-2.6-6.6-2.6-3.7 0-7.1 2.1-8.7 5.3l3.3 2.5c.8-2.3 2.9-4 5.4-4z"/>
+                    </g>
+                </svg>
+                Continue with Google
+            </button>
+            
+            <button id="github-login" class="social-btn github-btn">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="white" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M10 0C4.477 0 0 4.477 0 10C0 14.419 2.865 18.167 6.839 19.499C7.339 19.592 7.521 19.275 7.521 19.003C7.521 18.754 7.512 18.029 7.508 17.202C4.726 17.805 4.139 15.966 4.139 15.966C3.684 14.812 3.029 14.497 3.029 14.497C2.121 13.879 3.098 13.891 3.098 13.891C4.101 13.963 4.629 14.929 4.629 14.929C5.521 16.457 6.97 16.014 7.541 15.752C7.631 15.111 7.889 14.669 8.175 14.42C5.955 14.166 3.62 13.307 3.62 9.477C3.62 8.387 4.01 7.494 4.649 6.794C4.546 6.534 4.203 5.52 4.747 4.145C4.747 4.145 5.587 3.879 7.496 5.164C8.295 4.943 9.15 4.833 10 4.829C10.85 4.833 11.705 4.943 12.506 5.164C14.413 3.878 15.251 4.145 15.251 4.145C15.797 5.52 15.454 6.534 15.35 6.794C15.991 7.494 16.378 8.387 16.378 9.477C16.378 13.319 14.039 14.164 11.813 14.411C12.172 14.723 12.491 15.335 12.491 16.279C12.491 17.618 12.477 18.66 12.477 19.003C12.477 19.277 12.656 19.595 13.166 19.498C17.138 18.163 20 14.418 20 10C20 4.477 15.523 0 10 0Z"/>
+                </svg>
+                Continue with GitHub
+            </button>
+            
+            <div class="or-divider">
+                <span>or</span>
+            </div>
+            
+            <button id="email-login" class="social-btn email-btn">
+                Continue with Email
+            </button>
+        </div>
+        
+        <p class="footer-text">Compatible with Claude Desktop, Cursor, and MCP-enabled AI tools</p>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if already logged in
+            if (AuthManager.isLoggedIn()) {
+                showNotification('Already logged in. Redirecting to dashboard...', 'info');
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+                return;
+            }
+            
+            // Google login
+            document.getElementById('google-login').addEventListener('click', function() {
+                showNotification('Signing in with Google...', 'info');
+                // Direct login without intermediate page
+                AuthManager.handleSocialAuthRedirect('google');
             });
             
-            google.accounts.id.renderButton(
-                document.getElementById('googleSignInButton'),
-                { 
-                    theme: 'filled_blue',
-                    size: 'large',
-                    text: 'continue_with',
-                    shape: 'pill',
-                    width: '280'
-                }
-            );
-        }
-
-        // Handle the Google Sign-In response
-        function handleCredentialResponse(response) {
-            // The response contains a credential with an ID token
-            const id_token = response.credential; // Google now sends an id_token
+            // GitHub login
+            document.getElementById('github-login').addEventListener('click', function() {
+                showNotification('Signing in with GitHub...', 'info');
+                // Direct login without intermediate page
+                AuthManager.handleSocialAuthRedirect('github');
+            });
             
-            // Show loading state
-            document.querySelector('.login-card').classList.add('loading');
-            
-            // Redirect to the frontend's proxy endpoint which expects a 'code' param
-            // We'll pass the id_token as the 'code' for simplicity in this flow
-            // NOTE: In a production app, you'd typically exchange the *authorization code* (not ID token) on the backend.
-            // But for this setup where the frontend handles the pop-up, passing the ID token is common.
-            // Our server.js expects 'code', so we send the token as 'code'.
-            window.location.href = `/auth/google/callback?code=${id_token}`;
-        }
-
-        // Initialize when the page loads
-        window.onload = function() {
-            handleGoogleSignIn();
-            
-            // Animation for the pulse background
-            const pulseBackground = document.querySelector('.pulse-background');
-            setInterval(() => {
-                pulseBackground.classList.add('pulse');
+            // Email login
+            document.getElementById('email-login').addEventListener('click', function() {
+                showNotification('Redirecting to login page...', 'info');
                 setTimeout(() => {
-                    pulseBackground.classList.remove('pulse');
-                }, 1500);
-            }, 3000);
-        };
+                    window.location.href = 'login.html';
+                }, 500);
+            });
+            
+            // Check URL parameters for any messages
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('logout') === 'true') {
+                showNotification('You have been logged out successfully.', 'success');
+            }
+        });
     </script>
 </body>
 </html> 

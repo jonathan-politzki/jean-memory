@@ -3,274 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JEAN - Your AI Memory Dashboard</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>Profile - JEAN Memory</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/profile.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="js/auth.js"></script>
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Dashboard Header -->
-        <div class="dashboard-header">
-            <div class="dashboard-logo">
-                <div class="logo-icon">J</div>
-                <h1>JEAN</h1>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <img src="img/jean-logo.svg" alt="JEAN Memory">
+                <h1>JEAN Memory</h1>
             </div>
-            <div class="user-profile">
-                <div class="avatar" id="userInitial">U</div>
-                <span id="userEmail">user@example.com</span>
+            <ul class="nav-links">
+                <li><a href="index.html"><i class="icon-home"></i>Home</a></li>
+                <li><a href="chat.html"><i class="icon-chat"></i>Chat</a></li>
+                <li><a href="notes.html"><i class="icon-notes"></i>Notes</a></li>
+                <li><a href="knowledge-tree.html"><i class="icon-tree"></i>Knowledge Graph</a></li>
+                <li><a href="integrations.html"><i class="icon-connect"></i>Integrations</a></li>
+                <li class="active"><a href="profile.html"><i class="icon-user"></i>Profile</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <a href="settings.html"><i class="icon-settings"></i>Settings</a>
             </div>
-        </div>
+        </nav>
 
-        <!-- API Key Card -->
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Your MCP Configuration</h2>
-                <button class="copy-btn" id="copyConfigBtn">Copy Config</button>
-            </div>
-            
-            <p>Use this configuration with compatible AI assistants like Claude Desktop and Cursor.</p>
-            
-            <div class="api-key-display">
-                <pre id="mcpConfigDisplay">Loading your configuration...</pre>
-            </div>
-            
-            <div id="configCopyMessage"></div>
-        </div>
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Your Profile</h1>
+                <div id="user-display" class="user-display">
+                    <!-- Will be populated by auth.js -->
+                </div>
+            </header>
 
-        <!-- Context Sources -->
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">Connect Your Context Sources</h2>
+            <div class="profile-container">
+                <div class="profile-section user-info-section">
+                    <h2>Account Information</h2>
+                    <div class="profile-card">
+                        <div class="profile-avatar" id="profile-avatar">
+                            <!-- Avatar will be set by JS -->
+                        </div>
+                        <div class="profile-details">
+                            <h3 id="user-name">Loading...</h3>
+                            <p id="user-email">Loading...</p>
+                            <p class="account-type" id="account-type">Free Account</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h2>JEAN Memory MCP Configuration</h2>
+                    <div class="config-card">
+                        <p class="info-text">Use this configuration with compatible AI assistants like Claude Desktop or Cursor to give them access to your JEAN Memory.</p>
+                        
+                        <div class="config-display">
+                            <pre id="mcp-config">Loading configuration...</pre>
+                            <button id="copy-config" class="btn btn-secondary">
+                                <i class="icon-copy"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h2>API Key</h2>
+                    <div class="api-key-card">
+                        <p class="info-text">Your API key provides access to JEAN Memory. Keep it secure and don't share it publicly.</p>
+                        
+                        <div class="api-key-display">
+                            <div class="api-key-field">
+                                <input type="password" id="api-key-input" readonly>
+                                <button id="toggle-key-visibility" class="btn btn-icon">
+                                    <i class="icon-eye"></i>
+                                </button>
+                            </div>
+                            <button id="copy-api-key" class="btn btn-secondary">
+                                <i class="icon-copy"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h2>Quick Links</h2>
+                    <div class="quick-links">
+                        <a href="integrations.html" class="quick-link-card">
+                            <i class="icon-connect"></i>
+                            <h3>Connect Sources</h3>
+                            <p>Link GitHub, Obsidian and other sources to enrich your AI's memory</p>
+                        </a>
+                        <a href="knowledge-tree.html" class="quick-link-card">
+                            <i class="icon-tree"></i>
+                            <h3>View Knowledge Graph</h3>
+                            <p>Visualize connections between your notes and data</p>
+                        </a>
+                        <a href="settings.html" class="quick-link-card">
+                            <i class="icon-settings"></i>
+                            <h3>Manage Settings</h3>
+                            <p>Configure your JEAN Memory experience</p>
+                        </a>
+                    </div>
+                </div>
             </div>
-            
-            <p>Add personal context from these sources to improve your AI assistant's memory:</p>
-            
-            <div class="source-grid">
-                <!-- GitHub -->
-                <div class="source-card" id="github-source">
-                    <div class="source-icon">📂</div>
-                    <div class="source-name">GitHub</div>
-                    <div class="source-status">Not connected</div>
-                </div>
-                
-                <!-- Twitter/X -->
-                <div class="source-card" id="twitter-source">
-                    <div class="source-icon">🐦</div>
-                    <div class="source-name">Twitter/X</div>
-                    <div class="source-status">Not connected</div>
-                </div>
-                
-                <!-- Google Docs -->
-                <div class="source-card" id="gdocs-source">
-                    <div class="source-icon">📝</div>
-                    <div class="source-name">Google Docs</div>
-                    <div class="source-status">Not connected</div>
-                </div>
-                
-                <!-- Notion -->
-                <div class="source-card" id="notion-source">
-                    <div class="source-icon">📔</div>
-                    <div class="source-name">Notion</div>
-                    <div class="source-status">Not connected</div>
-                </div>
-                
-                <!-- Add Note -->
-                <div class="source-card" id="note-source">
-                    <div class="source-icon">✏️</div>
-                    <div class="source-name">Create Note</div>
-                    <div class="source-status">Available</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Status Card -->
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">System Status</h2>
-            </div>
-            
-            <div id="statusInfo">
-                <p>✅ Backend connection: <span id="backendStatus">checking...</span></p>
-                <p>✅ MCP endpoint: <span id="mcpStatus">checking...</span></p>
-                <p>✅ User authentication: <span id="authStatus">checking...</span></p>
-            </div>
-        </div>
+        </main>
     </div>
 
     <script>
-        // Parse URL parameters
-        function getUrlParams() {
-            const params = {};
-            const queryString = window.location.search;
-            const urlParams = new URLSearchParams(queryString);
-            
-            for (const [key, value] of urlParams) {
-                params[key] = value;
+        document.addEventListener('DOMContentLoaded', function() {
+            // Require authentication for this page
+            if (!AuthManager.requireAuth()) {
+                return; // Auth Manager will redirect if not logged in
             }
             
-            console.log("URL parameters extracted:", { 
-                userId: params.jean_user_id, 
-                apiKeyFound: !!params.jean_api_key,
-                apiKeyLength: params.jean_api_key ? params.jean_api_key.length : 0,
-                apiKeyPrefix: params.jean_api_key ? params.jean_api_key.substring(0, 10) + '...' : 'none'
-            });
+            // Get user data
+            const userData = AuthManager.getUserData();
             
-            return params;
-        }
-        
-        // Initialize the dashboard
-        async function initDashboard() {
-            console.log('Initial window.location.search:', window.location.search);
-            const params = getUrlParams();
-            const userId = params.jean_user_id || params.user_id;
-            const apiKey = params.jean_api_key || params.api_key; // Removed 'TEST_API_KEY' fallback
+            // Set user profile data
+            document.getElementById('user-name').textContent = userData.name;
+            document.getElementById('user-email').textContent = userData.email;
             
-            console.log("Dashboard initialized with:", { 
-                userId, 
-                apiKeyPrefix: apiKey ? apiKey.substring(0, 10) + '...' : 'none',
-                apiKeyLength: apiKey ? apiKey.length : 0
-            });
+            // Set account type (could be dynamic based on user data)
+            document.getElementById('account-type').textContent = 'Demo Account';
             
-            if (!userId) {
-                console.error("No user ID found in URL parameters, redirecting to login");
-                // Redirect to the login page if no user ID is found
-                window.location.href = '/';
-                return;
+            // Set avatar
+            const profileAvatar = document.getElementById('profile-avatar');
+            if (userData.avatar) {
+                profileAvatar.innerHTML = `<img src="${userData.avatar}" alt="${userData.name}">`;
+            } else {
+                // Generate initials avatar
+                const initials = userData.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                profileAvatar.innerHTML = `<div class="initials-avatar">${initials}</div>`;
             }
             
-            // Update user profile
-            document.getElementById('userInitial').textContent = 'U';
-            document.getElementById('userEmail').textContent = `User ${userId}`;
+            // Get MCP config and display it
+            const mcpConfig = AuthManager.getMCPConfig();
+            document.getElementById('mcp-config').textContent = JSON.stringify(mcpConfig, null, 2);
             
-            // Fetch and display MCP configuration
-            try {
-                const response = await fetch(`/api/mcp-config?api_key=${apiKey}`);
-                const mcpConfig = await response.json();
-                
-                // Display the MCP configuration
-                const configJson = JSON.stringify(mcpConfig, null, 2);
-                document.getElementById('mcpConfigDisplay').textContent = configJson;
-                
-                // Set up copy button
-                const copyBtn = document.getElementById('copyConfigBtn');
-                copyBtn.addEventListener('click', () => {
-                    navigator.clipboard.writeText(configJson).then(() => {
-                        const message = document.getElementById('configCopyMessage');
-                        message.textContent = '✅ Configuration copied to clipboard!';
-                        message.style.color = 'var(--secondary-color)';
+            // Set API key
+            const apiKeyInput = document.getElementById('api-key-input');
+            apiKeyInput.value = userData.apiKey;
+            
+            // Copy MCP config button
+            document.getElementById('copy-config').addEventListener('click', function() {
+                const configText = document.getElementById('mcp-config').textContent;
+                navigator.clipboard.writeText(configText)
+                    .then(() => {
+                        // Show copied feedback
+                        const button = this;
+                        const originalText = button.innerHTML;
+                        button.innerHTML = '<i class="icon-check"></i> Copied!';
+                        button.classList.add('copied');
                         
                         setTimeout(() => {
-                            message.textContent = '';
-                        }, 3000);
+                            button.innerHTML = originalText;
+                            button.classList.remove('copied');
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy: ', err);
                     });
-                });
-            } catch (error) {
-                console.error('Error fetching MCP config:', error);
-                document.getElementById('mcpConfigDisplay').textContent = 'Error loading configuration';
-            }
-            
-            // Check system status
-            checkSystemStatus();
-            
-            // Set up context source card clicks
-            setupSourceCards(userId, apiKey);
-        }
-        
-        // Check system status
-        async function checkSystemStatus() {
-            try {
-                // Check backend connection
-                const healthResponse = await fetch('/health');
-                const healthData = await healthResponse.json();
-                document.getElementById('backendStatus').textContent = healthData.status === 'ok' ? 'Connected' : 'Disconnected';
-                
-                // Check MCP endpoint (via backend proxy)
-                const backendBaseUrl = 'http://localhost:8000'; // Corrected port
-                const mcpResponse = await fetch(`${backendBaseUrl}/health`, { mode: 'cors' });
-                document.getElementById('mcpStatus').textContent = mcpResponse.ok ? 'Available' : 'Unavailable';
-                
-                // Auth status is assumed to be OK if we're on this page
-                document.getElementById('authStatus').textContent = 'Authenticated';
-            } catch (error) {
-                console.error('Error checking system status:', error);
-                document.getElementById('backendStatus').textContent = 'Error';
-                document.getElementById('mcpStatus').textContent = 'Error';
-            }
-        }
-        
-        // Set up context source cards
-        function setupSourceCards(userId, apiKey) {
-            const sourceCards = document.querySelectorAll('.source-card');
-            
-            sourceCards.forEach(card => {
-                card.addEventListener('click', () => {
-                    const sourceName = card.querySelector('.source-name').textContent;
-                    const isConnected = card.querySelector('.source-status').classList.contains('status-connected');
-                    
-                    if (isConnected) {
-                        console.log(`${sourceName} is already connected`);
-                        return;
-                    }
-                    
-                    // Show "coming soon" alert for unimplemented sources
-                    if (sourceName !== 'Create Note') {
-                        alert(`${sourceName} integration coming soon!`);
-                        return;
-                    }
-                    
-                    // For the note source, we'll implement it directly
-                    if (sourceName === 'Create Note') {
-                        const note = prompt('Enter your note:');
-                        if (note) {
-                            console.log("Creating note with API key:", {
-                                apiKeyPrefix: apiKey ? apiKey.substring(0, 10) + '...' : 'none',
-                                apiKeyLength: apiKey ? apiKey.length : 0
-                            });
-                            
-                            // Send the note to the backend MCP endpoint
-                            fetch('http://localhost:8000/mcp', { // Corrected port
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${apiKey}`,
-                                    'x-api-key': apiKey
-                                },
-                                body: JSON.stringify({
-                                    method: "store",
-                                    params: {
-                                        context_type: "notes",
-                                        content: {
-                                            title: "Quick Note",
-                                            body: note,
-                                            created_at: new Date().toISOString()
-                                        },
-                                        source_identifier: "quick_note_" + Date.now()
-                                    }
-                                })
-                            })
-                            .then(response => {
-                                console.log("Response status:", response.status);
-                                return response.json();
-                            })
-                            .then(data => {
-                                console.log("MCP response data:", data);
-                                if (data.result && data.result.type === "success") {
-                                    alert('Note created and stored in your personal memory!');
-                                } else {
-                                    alert('Error storing note: ' + JSON.stringify(data.error || "Unknown error"));
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error storing note:', error);
-                                alert('Failed to store note. See console for details.');
-                            });
-                        }
-                    }
-                });
             });
-        }
-        
-        // Initialize when the page loads
-        window.onload = initDashboard;
+            
+            // Toggle API key visibility
+            document.getElementById('toggle-key-visibility').addEventListener('click', function() {
+                const apiKeyInput = document.getElementById('api-key-input');
+                const icon = this.querySelector('i');
+                
+                if (apiKeyInput.type === 'password') {
+                    apiKeyInput.type = 'text';
+                    icon.className = 'icon-eye-off';
+                } else {
+                    apiKeyInput.type = 'password';
+                    icon.className = 'icon-eye';
+                }
+            });
+            
+            // Copy API key button
+            document.getElementById('copy-api-key').addEventListener('click', function() {
+                const apiKeyInput = document.getElementById('api-key-input');
+                navigator.clipboard.writeText(apiKeyInput.value)
+                    .then(() => {
+                        // Show copied feedback
+                        const button = this;
+                        const originalText = button.innerHTML;
+                        button.innerHTML = '<i class="icon-check"></i> Copied!';
+                        button.classList.add('copied');
+                        
+                        setTimeout(() => {
+                            button.innerHTML = originalText;
+                            button.classList.remove('copied');
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy: ', err);
+                    });
+            });
+        });
     </script>
 </body>
 </html> 

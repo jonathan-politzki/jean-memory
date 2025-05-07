@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes - JEAN Memory</title>
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/notifications.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="js/auth.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">J</div>
+                <h1>JEAN Memory</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="dashboard.html"><i class="icon-home"></i>Dashboard</a></li>
+                <li><a href="chat.html"><i class="icon-chat"></i>Chat</a></li>
+                <li class="active"><a href="notes.html"><i class="icon-notes"></i>Notes</a></li>
+                <li><a href="knowledge-tree.html"><i class="icon-tree"></i>Knowledge Graph</a></li>
+                <li><a href="integrations.html"><i class="icon-connect"></i>Integrations</a></li>
+                <li><a href="profile.html"><i class="icon-user"></i>Profile</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <a href="settings.html"><i class="icon-settings"></i>Settings</a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Notes</h1>
+                <div id="user-display" class="user-display">
+                    <!-- Will be populated by auth.js -->
+                </div>
+            </header>
+
+            <div class="notes-container">
+                <div class="notes-sidebar">
+                    <div class="notes-sidebar-header">
+                        <input type="text" id="search-notes" placeholder="Search notes...">
+                        <button id="new-note-btn" class="new-note-btn">
+                            <i class="icon-plus"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="notes-list">
+                        <div class="note-item active">
+                            <div class="note-title">Getting Started with JEAN Memory</div>
+                            <div class="note-preview">Welcome to your new AI memory layer! Here's how to get started...</div>
+                            <div class="note-meta">Updated 2 hours ago</div>
+                        </div>
+                        <div class="note-item">
+                            <div class="note-title">Project Ideas</div>
+                            <div class="note-preview">1. Build a personal knowledge graph visualization
+2. Integrate with Obsidian
+3. Create a CLI tool for quick access</div>
+                            <div class="note-meta">Updated yesterday</div>
+                        </div>
+                        <div class="note-item">
+                            <div class="note-title">Meeting Notes - 2023-09-15</div>
+                            <div class="note-preview">Discussed project roadmap with team:
+- Milestone 1: Basic functionality
+- Milestone 2: Integrations
+- Milestone 3: UI improvements</div>
+                            <div class="note-meta">Updated 5 days ago</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="note-editor">
+                    <div class="note-editor-header">
+                        <input type="text" id="note-title" value="Getting Started with JEAN Memory">
+                        <div class="note-actions">
+                            <button class="note-action-btn" title="Save">
+                                <i class="icon-save"></i>
+                            </button>
+                            <button class="note-action-btn" title="Delete">
+                                <i class="icon-delete"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="note-editor-content">
+                        <textarea id="note-content" placeholder="Write your note here...">## Welcome to JEAN Memory!
+
+This is your personal AI memory layer, designed to enhance your AI assistants with your context.
+
+### Getting Started
+
+1. **Connect your data sources** - Head to the Integrations page to connect GitHub, Obsidian, and more.
+
+2. **Create notes** - Use this Notes section to create and organize your thoughts.
+
+3. **Chat with context** - Try the Chat feature to see how your AI now has access to your personal context.
+
+4. **Visualize connections** - Check out the Knowledge Graph to see how your data is connected.
+
+### Tips for Best Results
+
+- Tag your notes with #keywords to help with organization
+- Regular syncs with your data sources keep everything up to date
+- Use the search functionality to quickly find relevant information
+
+Happy memory building!
+</textarea>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Require authentication for this page
+            if (!AuthManager.requireAuth()) {
+                return; // Auth Manager will redirect if not logged in
+            }
+            
+            // New note button
+            document.getElementById('new-note-btn').addEventListener('click', function() {
+                document.getElementById('note-title').value = 'New Note';
+                document.getElementById('note-content').value = '';
+                
+                // Remove active class from all notes
+                const noteItems = document.querySelectorAll('.note-item');
+                noteItems.forEach(item => item.classList.remove('active'));
+                
+                showNotification('Created new note', 'success');
+            });
+            
+            // Note item selection
+            const noteItems = document.querySelectorAll('.note-item');
+            noteItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    // Remove active class from all notes
+                    noteItems.forEach(note => note.classList.remove('active'));
+                    
+                    // Add active class to clicked note
+                    this.classList.add('active');
+                    
+                    // In a real app, this would load the note's content
+                    // For demo, we'll just show a notification
+                    if (!this.classList.contains('first-note')) {
+                        showNotification('Loaded note: ' + this.querySelector('.note-title').textContent, 'info');
+                    }
+                });
+            });
+        });
+    </script>
+    
+    <style>
+        .notes-container {
+            display: flex;
+            height: calc(100vh - 130px);
+            padding: 1rem 0;
+            gap: 1rem;
+        }
+        
+        .notes-sidebar {
+            width: 300px;
+            flex-shrink: 0;
+            border-right: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .notes-sidebar-header {
+            padding: 0 1rem 1rem;
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        #search-notes {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        #search-notes:focus {
+            outline: none;
+            border-color: #4a6cff;
+        }
+        
+        .new-note-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            border: none;
+            background-color: #4a6cff;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        
+        .new-note-btn:hover {
+            background-color: #3a5cee;
+        }
+        
+        .icon-plus::before {
+            content: "+";
+            font-size: 1.2rem;
+        }
+        
+        .notes-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .note-item {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .note-item:hover {
+            background-color: #f5f7fa;
+        }
+        
+        .note-item.active {
+            background-color: #f0f2ff;
+            border-left: 3px solid #4a6cff;
+        }
+        
+        .note-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: #333;
+        }
+        
+        .note-preview {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.4;
+        }
+        
+        .note-meta {
+            font-size: 0.75rem;
+            color: #888;
+        }
+        
+        .note-editor {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+        
+        .note-editor-header {
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #note-title {
+            flex: 1;
+            font-size: 1.25rem;
+            font-weight: 600;
+            border: none;
+            padding: 0.5rem 0;
+            color: #333;
+        }
+        
+        #note-title:focus {
+            outline: none;
+        }
+        
+        .note-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .note-action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            border: none;
+            background-color: #f0f2ff;
+            color: #4a6cff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+        
+        .note-action-btn:hover {
+            background-color: #e8ecff;
+        }
+        
+        .icon-save::before {
+            content: "💾";
+            font-size: 1rem;
+        }
+        
+        .icon-delete::before {
+            content: "🗑️";
+            font-size: 1rem;
+        }
+        
+        .note-editor-content {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        
+        #note-content {
+            width: 100%;
+            height: 100%;
+            border: none;
+            resize: none;
+            font-family: inherit;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        #note-content:focus {
+            outline: none;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .notes-container {
+                flex-direction: column;
+            }
+            
+            .notes-sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #eee;
+                max-height: 300px;
+            }
+        }
+    </style>
+</body>
+</html> 

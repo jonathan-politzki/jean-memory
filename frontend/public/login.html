@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - JEAN Memory</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/auth.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/auth.js"></script>
+</head>
+<body class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="logo">
+                    <div class="logo-icon">J</div>
+                    <h1>JEAN Memory</h1>
+                </div>
+                <h2>Sign In</h2>
+                <p>Sign in to your account to access your AI memory</p>
+            </div>
+            
+            <div class="auth-body">
+                <div class="auth-message" id="auth-message"></div>
+                
+                <!-- Social Login Options -->
+                <div class="social-login">
+                    <button class="social-btn google-btn" id="google-login">
+                        <img src="img/google-logo.svg" alt="Google">
+                        Sign in with Google
+                    </button>
+                    <button class="social-btn github-btn" id="github-login">
+                        <img src="img/github-logo.svg" alt="GitHub">
+                        Sign in with GitHub
+                    </button>
+                    <button class="social-btn twitter-btn" id="twitter-login">
+                        <img src="img/twitter-logo.svg" alt="Twitter">
+                        Sign in with Twitter
+                    </button>
+                </div>
+                
+                <div class="auth-divider">
+                    <span>Or sign in with email</span>
+                </div>
+                
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                        <a href="forgot-password.html" class="forgot-password">Forgot password?</a>
+                    </div>
+                    
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                    </div>
+                </form>
+                
+                <div class="auth-divider">
+                    <span>For quick access</span>
+                </div>
+                
+                <!-- Demo Account Login Button -->
+                <button id="demo-login" class="btn btn-secondary btn-block">Use Demo Account</button>
+                
+                <div class="auth-footer">
+                    <p>Don't have an account? <a href="register.html">Sign Up</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if already logged in
+            if (AuthManager.isLoggedIn()) {
+                // Redirect to home or remembered page
+                window.location.href = 'dashboard.html';
+                return;
+            }
+            
+            const loginForm = document.getElementById('login-form');
+            const demoLoginBtn = document.getElementById('demo-login');
+            const authMessage = document.getElementById('auth-message');
+            const googleLoginBtn = document.getElementById('google-login');
+            const githubLoginBtn = document.getElementById('github-login');
+            const twitterLoginBtn = document.getElementById('twitter-login');
+            
+            // Check URL parameters for auth status
+            const params = new URLSearchParams(window.location.search);
+            const authParam = params.get('auth');
+            const lastProvider = params.get('last_provider');
+            
+            // Show appropriate messages based on parameters
+            if (authParam) {
+                authMessage.innerHTML = `Authenticating with ${authParam}...`;
+                authMessage.className = 'auth-message info';
+                showNotification(`Signing in with ${authParam}...`, 'info');
+            } else if (lastProvider) {
+                authMessage.innerHTML = `You've been logged out. Sign in again with ${lastProvider} or another method.`;
+                authMessage.className = 'auth-message info';
+                showNotification(`You've been logged out. Please sign in again.`, 'info');
+            }
+
+            // Demo login button - Ensure this works immediately
+            demoLoginBtn.addEventListener('click', function() {
+                // Clear any previous messages
+                authMessage.innerHTML = 'Logging in as demo user...';
+                authMessage.className = 'auth-message info';
+                showNotification('Logging in as demo user...', 'info');
+                
+                // Demo user data
+                const demoUser = {
+                    userId: 'demo123',
+                    apiKey: 'demo-api-key-abc123',
+                    name: 'Demo User',
+                    email: 'demo@jeanmemory.ai',
+                    avatar: ''
+                };
+                
+                // Log demo user in
+                AuthManager.login(demoUser);
+                
+                // Show success message
+                authMessage.innerHTML = 'Logged in as demo user! Redirecting...';
+                authMessage.className = 'auth-message success';
+                showNotification('Logged in successfully!', 'success');
+                
+                // Redirect after a short delay
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+            });
+            
+            // Handle form submission
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                // Clear any previous messages
+                authMessage.innerHTML = 'Signing in...';
+                authMessage.className = 'auth-message info';
+                showNotification('Signing in...', 'info');
+                
+                try {
+                    // For demonstration, use the demo account for email login too
+                    const demoUser = {
+                        userId: 'email-demo',
+                        apiKey: 'demo-api-key-email123',
+                        name: email.split('@')[0],
+                        email: email,
+                        avatar: '',
+                        provider: 'email'
+                    };
+                    
+                    // Log user in
+                    AuthManager.login(demoUser);
+                    
+                    // Show success message
+                    authMessage.innerHTML = 'Logged in successfully! Redirecting...';
+                    authMessage.className = 'auth-message success';
+                    showNotification('Logged in successfully!', 'success');
+                    
+                    // Redirect after a short delay
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1000);
+                    
+                } catch (error) {
+                    console.error('Login error:', error);
+                    authMessage.innerHTML = 'An error occurred during login. Please try again.';
+                    authMessage.className = 'auth-message error';
+                    showNotification('Login failed. Please try again.', 'error');
+                }
+            });
+            
+            // Social login buttons
+            googleLoginBtn.addEventListener('click', function() {
+                // In a real app, we would redirect to Google OAuth
+                // For demo, we'll simulate this with a URL parameter
+                window.location.href = 'login.html?auth=google';
+            });
+            
+            githubLoginBtn.addEventListener('click', function() {
+                // In a real app, we would redirect to GitHub OAuth
+                // For demo, we'll simulate this with a URL parameter
+                window.location.href = 'login.html?auth=github';
+            });
+            
+            twitterLoginBtn.addEventListener('click', function() {
+                // In a real app, we would redirect to Twitter OAuth
+                // For demo, we'll simulate this with a URL parameter
+                window.location.href = 'login.html?auth=twitter';
+            });
+        });
+    </script>
+</body>
+</html> 

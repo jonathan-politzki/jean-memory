@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrations - JEAN Memory</title>
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/notifications.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="js/auth.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">J</div>
+                <h1>JEAN Memory</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="dashboard.html"><i class="icon-home"></i>Dashboard</a></li>
+                <li><a href="chat.html"><i class="icon-chat"></i>Chat</a></li>
+                <li><a href="notes.html"><i class="icon-notes"></i>Notes</a></li>
+                <li><a href="knowledge-tree.html"><i class="icon-tree"></i>Knowledge Graph</a></li>
+                <li class="active"><a href="integrations.html"><i class="icon-connect"></i>Integrations</a></li>
+                <li><a href="profile.html"><i class="icon-user"></i>Profile</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <a href="settings.html"><i class="icon-settings"></i>Settings</a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Integrations</h1>
+                <div id="user-display" class="user-display">
+                    <!-- Will be populated by auth.js -->
+                </div>
+            </header>
+
+            <div class="integrations-container">
+                <div class="intro-section">
+                    <h2>Connect your data sources</h2>
+                    <p>Enhance your AI memory layer by connecting to your existing tools and services. Your data remains private and secure.</p>
+                </div>
+                
+                <div class="integrations-grid">
+                    <!-- GitHub Integration -->
+                    <div class="integration-card">
+                        <div class="integration-header">
+                            <img src="img/github-logo.svg" alt="GitHub" class="integration-logo">
+                            <h3>GitHub</h3>
+                        </div>
+                        <div class="integration-body">
+                            <p>Connect your GitHub repositories to give your AI memory context about your code and projects.</p>
+                            <ul class="integration-features">
+                                <li>Access to repository code</li>
+                                <li>Pull request history</li>
+                                <li>Issue tracking</li>
+                            </ul>
+                        </div>
+                        <div class="integration-footer">
+                            <button class="btn btn-primary connect-btn" data-integration="github">
+                                <i class="icon-github"></i> Connect GitHub
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Obsidian Integration -->
+                    <div class="integration-card">
+                        <div class="integration-header">
+                            <img src="img/obsidian-logo.svg" alt="Obsidian" class="integration-logo">
+                            <h3>Obsidian</h3>
+                        </div>
+                        <div class="integration-body">
+                            <p>Link your Obsidian vault to incorporate your personal notes and knowledge base.</p>
+                            <ul class="integration-features">
+                                <li>Access to notes and connections</li>
+                                <li>Markdown formatting preserved</li>
+                                <li>Tag and link extraction</li>
+                            </ul>
+                        </div>
+                        <div class="integration-footer">
+                            <button class="btn btn-primary connect-btn" data-integration="obsidian">
+                                <i class="icon-obsidian"></i> Connect Obsidian
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Google Drive Integration -->
+                    <div class="integration-card">
+                        <div class="integration-header">
+                            <img src="img/gdrive-logo.svg" alt="Google Drive" class="integration-logo">
+                            <h3>Google Drive</h3>
+                        </div>
+                        <div class="integration-body">
+                            <p>Connect to Google Drive to access documents, spreadsheets, and shared files.</p>
+                            <ul class="integration-features">
+                                <li>Document content extraction</li>
+                                <li>Spreadsheet data integration</li>
+                                <li>Shared file access</li>
+                            </ul>
+                        </div>
+                        <div class="integration-footer">
+                            <button class="btn btn-secondary connect-btn" data-integration="gdrive">
+                                <i class="icon-gdrive"></i> Coming Soon
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Notion Integration -->
+                    <div class="integration-card">
+                        <div class="integration-header">
+                            <img src="img/notion-logo.svg" alt="Notion" class="integration-logo">
+                            <h3>Notion</h3>
+                        </div>
+                        <div class="integration-body">
+                            <p>Integrate with Notion to access your workspace pages, databases, and content.</p>
+                            <ul class="integration-features">
+                                <li>Page content extraction</li>
+                                <li>Database integration</li>
+                                <li>Knowledge structure preservation</li>
+                            </ul>
+                        </div>
+                        <div class="integration-footer">
+                            <button class="btn btn-secondary connect-btn" data-integration="notion">
+                                <i class="icon-notion"></i> Coming Soon
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="connected-sources">
+                    <h2>Connected Sources</h2>
+                    <div class="source-card github-source">
+                        <div class="source-header">
+                            <img src="img/github-logo.svg" alt="GitHub" class="source-logo">
+                            <div class="source-info">
+                                <h3>GitHub</h3>
+                                <span class="connected-status">Connected</span>
+                            </div>
+                            <button class="source-settings-btn">
+                                <i class="icon-settings-small"></i>
+                            </button>
+                        </div>
+                        <div class="source-body">
+                            <div class="source-details">
+                                <div class="detail-item">
+                                    <span class="detail-label">Account:</span>
+                                    <span class="detail-value">github-user</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Repositories:</span>
+                                    <span class="detail-value">5 repositories</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Last Sync:</span>
+                                    <span class="detail-value">2 hours ago</span>
+                                </div>
+                            </div>
+                            <div class="source-actions">
+                                <button class="btn btn-small btn-secondary">
+                                    <i class="icon-sync"></i> Sync Now
+                                </button>
+                                <button class="btn btn-small btn-danger">
+                                    <i class="icon-disconnect"></i> Disconnect
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Require authentication for this page
+            if (!AuthManager.requireAuth()) {
+                return; // Auth Manager will redirect if not logged in
+            }
+            
+            // Connect buttons
+            const connectButtons = document.querySelectorAll('.connect-btn');
+            connectButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const integration = this.dataset.integration;
+                    
+                    // Skip "coming soon" integrations
+                    if (this.classList.contains('btn-secondary')) {
+                        showNotification(`${integration} integration coming soon!`, 'info');
+                        return;
+                    }
+                    
+                    showNotification(`Connecting to ${integration}...`, 'info');
+                    
+                    // In a real app, this would initiate the OAuth flow
+                    // For demo, we'll simulate a successful connection
+                    setTimeout(() => {
+                        if (integration !== 'github') { // GitHub is already "connected" in our demo
+                            showNotification(`Successfully connected to ${integration}!`, 'success');
+                            
+                            // Show the source card
+                            const sourceCard = document.createElement('div');
+                            sourceCard.className = 'source-card';
+                            sourceCard.innerHTML = `
+                                <div class="source-header">
+                                    <img src="img/${integration}-logo.svg" alt="${integration}" class="source-logo">
+                                    <div class="source-info">
+                                        <h3>${integration.charAt(0).toUpperCase() + integration.slice(1)}</h3>
+                                        <span class="connected-status">Connected</span>
+                                    </div>
+                                    <button class="source-settings-btn">
+                                        <i class="icon-settings-small"></i>
+                                    </button>
+                                </div>
+                                <div class="source-body">
+                                    <div class="source-details">
+                                        <div class="detail-item">
+                                            <span class="detail-label">Last Sync:</span>
+                                            <span class="detail-value">Just now</span>
+                                        </div>
+                                    </div>
+                                    <div class="source-actions">
+                                        <button class="btn btn-small btn-secondary">
+                                            <i class="icon-sync"></i> Sync Now
+                                        </button>
+                                        <button class="btn btn-small btn-danger">
+                                            <i class="icon-disconnect"></i> Disconnect
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                            
+                            document.querySelector('.connected-sources').appendChild(sourceCard);
+                        } else {
+                            showNotification('GitHub is already connected!', 'info');
+                        }
+                    }, 1500);
+                });
+            });
+            
+            // Source action buttons
+            document.querySelector('.connected-sources').addEventListener('click', function(e) {
+                // Sync button
+                if (e.target.classList.contains('icon-sync') || e.target.closest('button')?.querySelector('.icon-sync')) {
+                    showNotification('Syncing data...', 'info');
+                    
+                    // In a real app, this would trigger a sync
+                    setTimeout(() => {
+                        showNotification('Sync completed successfully!', 'success');
+                    }, 2000);
+                }
+                
+                // Disconnect button
+                if (e.target.classList.contains('icon-disconnect') || e.target.closest('button')?.querySelector('.icon-disconnect')) {
+                    if (confirm('Are you sure you want to disconnect this integration? This will remove access to the data.')) {
+                        showNotification('Integration disconnected.', 'info');
+                        
+                        // In a real app, this would disconnect the integration
+                        // For demo, we'll just hide the source card
+                        const sourceCard = e.target.closest('.source-card');
+                        if (sourceCard) {
+                            sourceCard.style.display = 'none';
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+    
+    <style>
+        .integrations-container {
+            padding: 1rem 0;
+        }
+        
+        .intro-section {
+            margin-bottom: 2rem;
+        }
+        
+        .intro-section h2 {
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+        }
+        
+        .intro-section p {
+            color: #666;
+            font-size: 1rem;
+            max-width: 800px;
+        }
+        
+        .integrations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        
+        .integration-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .integration-header {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .integration-logo {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+        
+        .integration-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: #333;
+        }
+        
+        .integration-body {
+            padding: 1.5rem;
+            flex: 1;
+        }
+        
+        .integration-body p {
+            margin: 0 0 1rem 0;
+            font-size: 0.95rem;
+            color: #666;
+        }
+        
+        .integration-features {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .integration-features li {
+            position: relative;
+            padding-left: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: #555;
+        }
+        
+        .integration-features li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4a6cff;
+            font-weight: bold;
+        }
+        
+        .integration-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid #eee;
+            background-color: #f8f9fc;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.25rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-small {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+        }
+        
+        .btn-primary {
+            background-color: #4a6cff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #3a5cee;
+        }
+        
+        .btn-secondary {
+            background-color: #f0f2ff;
+            color: #4a6cff;
+            border: 1px solid #d8deff;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e8ecff;
+        }
+        
+        .btn-danger {
+            background-color: #fff0f0;
+            color: #dc3545;
+            border: 1px solid #ffd8d8;
+        }
+        
+        .btn-danger:hover {
+            background-color: #ffe8e8;
+        }
+        
+        .connect-btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        /* Connected Sources */
+        .connected-sources {
+            margin-top: 2rem;
+        }
+        
+        .connected-sources h2 {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .source-card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        
+        .source-header {
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .source-logo {
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
+            margin-right: 1rem;
+        }
+        
+        .source-info {
+            flex: 1;
+        }
+        
+        .source-info h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #333;
+        }
+        
+        .connected-status {
+            font-size: 0.8rem;
+            color: #2e7d32;
+            background-color: #e8f5e9;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+        }
+        
+        .source-settings-btn {
+            width: 30px;
+            height: 30px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        
+        .source-settings-btn:hover {
+            background-color: #f5f7fa;
+        }
+        
+        .icon-settings-small::before {
+            content: "⚙️";
+            font-size: 0.9rem;
+        }
+        
+        .source-body {
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .source-details {
+            flex: 1;
+        }
+        
+        .detail-item {
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .detail-label {
+            font-weight: 500;
+            color: #555;
+            margin-right: 0.5rem;
+        }
+        
+        .detail-value {
+            color: #333;
+        }
+        
+        .source-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        /* Icons */
+        [class^="icon-"] {
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+        }
+        
+        .icon-github::before {
+            content: "🐙";
+        }
+        
+        .icon-obsidian::before {
+            content: "💎";
+        }
+        
+        .icon-gdrive::before {
+            content: "📁";
+        }
+        
+        .icon-notion::before {
+            content: "📝";
+        }
+        
+        .icon-sync::before {
+            content: "🔄";
+        }
+        
+        .icon-disconnect::before {
+            content: "🔌";
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .integrations-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .source-body {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .source-actions {
+                margin-top: 1rem;
+                width: 100%;
+            }
+            
+            .source-actions .btn {
+                flex: 1;
+                justify-content: center;
+            }
+        }
+    </style>
+</body>
+</html> 

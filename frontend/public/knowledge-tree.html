@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JEAN Memory - Knowledge Graph</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header-nav {
+            background-color: #1e1e1e;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            z-index: 10;
+            color: #e2e8f0;
+        }
+        
+        .header-nav .logo {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            font-size: 18px;
+            color: #e2e8f0;
+            text-decoration: none;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .nav-links a {
+            color: #a0aec0;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .nav-links a:hover {
+            background-color: #2d3748;
+            color: #e2e8f0;
+        }
+        
+        .nav-links a.active {
+            color: #90cdf4;
+            font-weight: 500;
+        }
+        
+        .knowledge-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 260px;
+            background-color: #252526;
+            border-right: 1px solid #333;
+            padding: 15px;
+            overflow-y: auto;
+            color: #e2e8f0;
+            flex-shrink: 0;
+        }
+        
+        .sidebar h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #e2e8f0;
+        }
+        
+        .main-content {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            background-color: #1e1e1e;
+        }
+        
+        .visualization-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            overflow: auto;
+        }
+        
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #2d3748;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .controls button {
+            margin-bottom: 5px;
+            background-color: #4a5568;
+            color: #e2e8f0;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background-color 0.2s;
+        }
+        
+        .controls button:hover {
+            background-color: #2b6cb0;
+        }
+        
+        .node-details {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: #2d3748;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            max-width: 300px;
+            z-index: 10;
+            display: none;
+            color: #e2e8f0;
+            border-left: 3px solid #90cdf4;
+        }
+        
+        .node-details h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #90cdf4;
+            font-size: 16px;
+        }
+        
+        .node-details p {
+            margin: 5px 0;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        
+        .node-details .content-preview {
+            background-color: #1a202c;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 150px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .filter-section {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #2d3748;
+            border-radius: 6px;
+        }
+        
+        .filter-section h3 {
+            margin-bottom: 10px;
+            font-size: 14px;
+            color: #90cdf4;
+        }
+        
+        .toggle-button {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .toggle-label {
+            margin-left: 8px;
+            font-size: 13px;
+            color: #e2e8f0;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 18px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #4a5568;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #e2e8f0;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #4299e1;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(18px);
+        }
+        
+        input:disabled + .toggle-slider {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .date-range {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .date-input {
+            padding: 6px 8px;
+            border-radius: 4px;
+            border: 1px solid #4a5568;
+            font-size: 13px;
+            background-color: #1a202c;
+            color: #e2e8f0;
+        }
+        
+        .loader {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            flex-direction: column;
+            color: #e2e8f0;
+        }
+        
+        .loader-spinner {
+            border: 4px solid #2d3748;
+            border-top: 4px solid #90cdf4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        button.primary {
+            background-color: #4299e1;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background-color 0.2s;
+        }
+        
+        button.primary:hover {
+            background-color: #3182ce;
+        }
+        
+        button.secondary {
+            background-color: #4a5568;
+            color: #e2e8f0;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background-color 0.2s;
+        }
+        
+        button.secondary:hover {
+            background-color: #2d3748;
+        }
+        
+        .view-controls {
+            margin-bottom: 10px;
+            display: flex;
+            gap: 5px;
+        }
+        
+        .view-controls button {
+            flex: 1;
+            font-size: 12px;
+            padding: 6px;
+        }
+        
+        .link {
+            stroke-opacity: 0.3;
+            stroke-width: 1px;
+        }
+        
+        .node circle {
+            stroke-width: 1.5px;
+        }
+        
+        .node text {
+            font-size: 11px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <header class="header-nav">
+        <a href="profile.html" class="logo">
+            <div class="logo-icon" style="width: 24px; height: 24px; font-size: 14px; margin-right: 10px;">J</div>
+            JEAN Memory
+        </a>
+        <nav class="nav-links">
+            <a href="profile.html">Dashboard</a>
+            <a href="knowledge-tree.html" class="active">Knowledge Graph</a>
+            <a href="mcp-config.html">MCP Config</a>
+        </nav>
+    </header>
+
+    <div class="knowledge-container">
+        <aside class="sidebar">
+            <h2>Knowledge Filters</h2>
+            
+            <div class="view-controls">
+                <button id="graphViewBtn" class="primary">Graph View</button>
+                <button id="treeViewBtn" class="secondary">Tree View</button>
+            </div>
+            
+            <div class="filter-section">
+                <h3>Note Sources</h3>
+                
+                <div class="toggle-button">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="source-notes" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">Quick Notes</span>
+                </div>
+                
+                <div class="toggle-button">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="source-github" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">GitHub</span>
+                </div>
+                
+                <div class="toggle-button">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="source-obsidian" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">Obsidian</span>
+                </div>
+                
+                <div class="toggle-button">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="source-twitter" disabled>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">Twitter/X</span>
+                </div>
+            </div>
+            
+            <div class="filter-section">
+                <h3>Note Types</h3>
+                
+                <div class="toggle-button">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="type-markdown" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">Markdown</span>
+                </div>
+                
+                <div class="toggle-button">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="type-code" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">Code Snippets</span>
+                </div>
+                
+                <div class="toggle-button">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="type-todos" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">Todo Lists</span>
+                </div>
+            </div>
+            
+            <div class="filter-section">
+                <h3>Time Range</h3>
+                
+                <div class="date-range">
+                    <label for="start-date" style="font-size: 13px; margin-bottom: 4px;">From:</label>
+                    <input type="date" id="start-date" class="date-input">
+                    
+                    <label for="end-date" style="font-size: 13px; margin-bottom: 4px; margin-top: 8px;">To:</label>
+                    <input type="date" id="end-date" class="date-input">
+                </div>
+            </div>
+            
+            <button id="apply-filters" class="primary" style="width: 100%; margin-top: 20px;">Apply Filters</button>
+            <button id="reset-filters" class="secondary" style="width: 100%; margin-top: 10px;">Reset Filters</button>
+        </aside>
+        
+        <main class="main-content">
+            <div class="controls">
+                <button id="zoom-in">Zoom In +</button>
+                <button id="zoom-out">Zoom Out -</button>
+                <button id="reset-view">Reset View</button>
+                <button id="export-png" style="margin-top: 5px;">Export PNG</button>
+            </div>
+            
+            <div class="visualization-container">
+                <div id="loader" class="loader">
+                    <div class="loader-spinner"></div>
+                    <p>Building your knowledge graph...</p>
+                </div>
+                <svg id="graph-svg" width="100%" height="100%"></svg>
+            </div>
+            
+            <div class="node-details" id="node-details">
+                <h3 id="detail-title">Note Title</h3>
+                <p id="detail-source">From: Obsidian</p>
+                <p id="detail-date">Created: May 15, 2025</p>
+                <p id="detail-tags">Tags: <span id="detail-tags-list">research, notes</span></p>
+                <div class="content-preview" id="detail-content">Content preview goes here...</div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set current date as the end date
+            const today = new Date();
+            const endDateInput = document.getElementById('end-date');
+            endDateInput.value = today.toISOString().split('T')[0];
+            
+            // Set 3 months ago as the start date
+            const threeMonthsAgo = new Date();
+            threeMonthsAgo.setMonth(today.getMonth() - 3);
+            const startDateInput = document.getElementById('start-date');
+            startDateInput.value = threeMonthsAgo.toISOString().split('T')[0];
+            
+            // View mode
+            let currentViewMode = 'graph'; // 'graph' or 'tree'
+            
+            document.getElementById('graphViewBtn').addEventListener('click', function() {
+                currentViewMode = 'graph';
+                document.getElementById('graphViewBtn').className = 'primary';
+                document.getElementById('treeViewBtn').className = 'secondary';
+                loadData();
+            });
+            
+            document.getElementById('treeViewBtn').addEventListener('click', function() {
+                currentViewMode = 'tree';
+                document.getElementById('treeViewBtn').className = 'primary';
+                document.getElementById('graphViewBtn').className = 'secondary';
+                loadData();
+            });
+            
+            // Zoom controls
+            let svg = d3.select("#graph-svg");
+            let zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on("zoom", function(event) {
+                    container.attr("transform", event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            let container = svg.append("g");
+            
+            document.getElementById('zoom-in').addEventListener('click', function() {
+                svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+            });
+            
+            document.getElementById('zoom-out').addEventListener('click', function() {
+                svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', function() {
+                svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
+            });
+            
+            document.getElementById('export-png').addEventListener('click', function() {
+                // Get the SVG element
+                const svgElement = document.getElementById('graph-svg');
+                
+                // Create a canvas element
+                const canvas = document.createElement('canvas');
+                const svgRect = svgElement.getBoundingClientRect();
+                canvas.width = svgRect.width;
+                canvas.height = svgRect.height;
+                const ctx = canvas.getContext('2d');
+                
+                // Set background color
+                ctx.fillStyle = '#1e1e1e';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Convert SVG to data URL
+                const data = new XMLSerializer().serializeToString(svgElement);
+                const svgBlob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+                
+                // Create image from SVG and draw to canvas
+                const img = new Image();
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0);
+                    URL.revokeObjectURL(url);
+                    
+                    // Convert canvas to PNG and download
+                    const pngUrl = canvas.toDataURL('image/png');
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = pngUrl;
+                    downloadLink.download = 'knowledge-graph.png';
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                };
+                img.src = url;
+            });
+            
+            // Apply filter button
+            document.getElementById('apply-filters').addEventListener('click', function() {
+                loadData();
+            });
+            
+            // Reset filter button
+            document.getElementById('reset-filters').addEventListener('click', function() {
+                // Reset checkboxes to checked
+                document.querySelectorAll('.toggle-switch input:not([disabled])').forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+                
+                // Reset date range
+                document.getElementById('start-date').value = threeMonthsAgo.toISOString().split('T')[0];
+                document.getElementById('end-date').value = today.toISOString().split('T')[0];
+                
+                // Reload data
+                loadData();
+            });
+            
+            // Initial data load
+            loadData();
+            
+            function loadData() {
+                document.getElementById('loader').style.display = 'flex';
+                container.selectAll("*").remove();
+                
+                // In a real implementation, this would fetch data from the backend
+                // based on the selected filters
+                setTimeout(() => {
+                    if (currentViewMode === 'graph') {
+                        createForceGraph(generateGraphData());
+                    } else {
+                        createTreeView(generateTreeData());
+                    }
+                    document.getElementById('loader').style.display = 'none';
+                }, 800);
+            }
+            
+            function generateGraphData() {
+                // This would be replaced with actual data from the backend
+                // Simulating Obsidian-style notes and connections
+                
+                const nodes = [
+                    { id: "node1", name: "Project Ideas", type: "note", source: "Obsidian", date: "2025-05-10", tags: ["ideas", "projects"], content: "# Project Ideas\n\n- Personal knowledge management system\n- Smart home automation hub\n- AI writing assistant integration\n- Cross-platform note synchronization" },
+                    { id: "node2", name: "Meeting Notes - Team Sync", type: "note", source: "Obsidian", date: "2025-05-12", tags: ["meetings", "team"], content: "# Team Sync - May 12\n\n- Discussed roadmap for Q3\n- Assigned tasks for upcoming sprint\n- Reviewed customer feedback\n- Action items:\n  - Alex: Update documentation\n  - Sam: Fix priority bugs\n  - Jordan: Prepare demo for next call" },
+                    { id: "node3", name: "Research: Transformer Models", type: "note", source: "Obsidian", date: "2025-04-20", tags: ["research", "ai", "nlp"], content: "# Transformer Models Research\n\n- Attention mechanisms provide better context handling\n- BERT vs. GPT architecture differences\n- Fine-tuning approaches for domain-specific tasks\n- Token limitations and chunking strategies" },
+                    { id: "node4", name: "Book Notes: Atomic Habits", type: "note", source: "Obsidian", date: "2025-03-15", tags: ["books", "productivity"], content: "# Atomic Habits - James Clear\n\n- Small changes lead to remarkable results\n- 1% better every day compounds to 37x better by year-end\n- Four laws of behavior change:\n  1. Make it obvious\n  2. Make it attractive\n  3. Make it easy\n  4. Make it satisfying" },
+                    { id: "node5", name: "JEAN Memory Project", type: "note", source: "GitHub", date: "2025-05-15", tags: ["project", "ai"], content: "# JEAN Memory Project\n\n- Personal AI memory layer\n- Enhances AI assistants with contextual awareness\n- Integration with Obsidian and GitHub\n- Supports semantic search and knowledge visualization" },
+                    { id: "node6", name: "Smart Home Setup", type: "note", source: "Quick Notes", date: "2025-04-18", tags: ["home", "tech"], content: "# Smart Home Setup\n\n- Home Assistant running on Raspberry Pi\n- Z-Wave devices for lighting control\n- Temperature sensors in each room\n- Automation rules for morning/evening routines" },
+                    { id: "node7", name: "Weekly Goals", type: "note", source: "Quick Notes", date: "2025-05-14", tags: ["productivity", "goals"], content: "# Weekly Goals (May 14-20)\n\n- Complete JEAN Memory knowledge graph\n- Finish reading Atomic Habits\n- Set up new automation for home office\n- Schedule team retrospective" },
+                    { id: "node8", name: "React vs Vue Comparison", type: "note", source: "GitHub", date: "2025-04-02", tags: ["dev", "frontend"], content: "# React vs Vue\n\n## React\n- JSX syntax\n- Unidirectional data flow\n- Large ecosystem\n\n## Vue\n- Template-based\n- Simple reactivity system\n- Gentle learning curve" },
+                    { id: "node9", name: "CSS Frameworks Analysis", type: "note", source: "GitHub", date: "2025-04-10", tags: ["dev", "css"], content: "# CSS Frameworks Comparison\n\n- Tailwind CSS: Utility-first approach\n- Bootstrap: Component-based, quick prototyping\n- Bulma: Flexbox-based, readable syntax\n- Preference: Tailwind for flexibility and optimization" },
+                    { id: "node10", name: "Productivity System", type: "note", source: "Obsidian", date: "2025-03-30", tags: ["productivity", "systems"], content: "# Personal Productivity System\n\n- Daily planning in the morning\n- Time blocking for focused work\n- Weekly review on Sundays\n- Monthly goal setting\n- Quarterly reflection and adjustment" }
+                ];
+                
+                // Generate links based on tag similarity and references
+                const links = [
+                    { source: "node1", target: "node5", value: 3 }, // Project ideas -> JEAN Memory
+                    { source: "node5", target: "node3", value: 2 }, // JEAN Memory -> Transformer research
+                    { source: "node4", target: "node10", value: 4 }, // Atomic Habits -> Productivity System
+                    { source: "node4", target: "node7", value: 3 }, // Atomic Habits -> Weekly Goals
+                    { source: "node2", target: "node7", value: 2 }, // Meeting Notes -> Weekly Goals
+                    { source: "node1", target: "node6", value: 1 }, // Project Ideas -> Smart Home
+                    { source: "node8", target: "node9", value: 3 }, // React vs Vue -> CSS Frameworks
+                    { source: "node5", target: "node8", value: 1 }, // JEAN Memory -> React vs Vue
+                    { source: "node10", target: "node7", value: 4 }, // Productivity System -> Weekly Goals
+                    { source: "node6", target: "node1", value: 2 }, // Smart Home -> Project Ideas
+                    { source: "node7", target: "node5", value: 3 }, // Weekly Goals -> JEAN Memory
+                    { source: "node3", target: "node1", value: 1 }, // Transformer Research -> Project Ideas
+                    { source: "node9", target: "node5", value: 2 }, // CSS Frameworks -> JEAN Memory
+                    { source: "node2", target: "node5", value: 3 } // Meeting Notes -> JEAN Memory
+                ];
+                
+                return { nodes, links };
+            }
+            
+            function generateTreeData() {
+                // Tree structured data for the tree view
+                const data = {
+                    name: "Knowledge Base",
+                    type: "root",
+                    children: [
+                        {
+                            name: "Projects",
+                            type: "folder",
+                            children: [
+                                {
+                                    name: "JEAN Memory",
+                                    type: "note",
+                                    source: "GitHub",
+                                    date: "2025-05-15",
+                                    tags: ["project", "ai"],
+                                    content: "# JEAN Memory Project\n\n- Personal AI memory layer\n- Enhances AI assistants with contextual awareness\n- Integration with Obsidian and GitHub\n- Supports semantic search and knowledge visualization"
+                                },
+                                {
+                                    name: "Smart Home",
+                                    type: "note",
+                                    source: "Quick Notes",
+                                    date: "2025-04-18",
+                                    tags: ["home", "tech"],
+                                    content: "# Smart Home Setup\n\n- Home Assistant running on Raspberry Pi\n- Z-Wave devices for lighting control\n- Temperature sensors in each room\n- Automation rules for morning/evening routines"
+                                }
+                            ]
+                        },
+                        {
+                            name: "Research",
+                            type: "folder",
+                            children: [
+                                {
+                                    name: "Transformer Models",
+                                    type: "note",
+                                    source: "Obsidian",
+                                    date: "2025-04-20",
+                                    tags: ["research", "ai", "nlp"],
+                                    content: "# Transformer Models Research\n\n- Attention mechanisms provide better context handling\n- BERT vs. GPT architecture differences\n- Fine-tuning approaches for domain-specific tasks\n- Token limitations and chunking strategies"
+                                },
+                                {
+                                    name: "Web Development",
+                                    type: "folder",
+                                    children: [
+                                        {
+                                            name: "React vs Vue",
+                                            type: "note",
+                                            source: "GitHub",
+                                            date: "2025-04-02",
+                                            tags: ["dev", "frontend"],
+                                            content: "# React vs Vue\n\n## React\n- JSX syntax\n- Unidirectional data flow\n- Large ecosystem\n\n## Vue\n- Template-based\n- Simple reactivity system\n- Gentle learning curve"
+                                        },
+                                        {
+                                            name: "CSS Frameworks",
+                                            type: "note",
+                                            source: "GitHub",
+                                            date: "2025-04-10",
+                                            tags: ["dev", "css"],
+                                            content: "# CSS Frameworks Comparison\n\n- Tailwind CSS: Utility-first approach\n- Bootstrap: Component-based, quick prototyping\n- Bulma: Flexbox-based, readable syntax\n- Preference: Tailwind for flexibility and optimization"
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            name: "Personal",
+                            type: "folder",
+                            children: [
+                                {
+                                    name: "Productivity",
+                                    type: "folder",
+                                    children: [
+                                        {
+                                            name: "Book Notes: Atomic Habits",
+                                            type: "note",
+                                            source: "Obsidian",
+                                            date: "2025-03-15",
+                                            tags: ["books", "productivity"],
+                                            content: "# Atomic Habits - James Clear\n\n- Small changes lead to remarkable results\n- 1% better every day compounds to 37x better by year-end\n- Four laws of behavior change:\n  1. Make it obvious\n  2. Make it attractive\n  3. Make it easy\n  4. Make it satisfying"
+                                        },
+                                        {
+                                            name: "Productivity System",
+                                            type: "note",
+                                            source: "Obsidian",
+                                            date: "2025-03-30",
+                                            tags: ["productivity", "systems"],
+                                            content: "# Personal Productivity System\n\n- Daily planning in the morning\n- Time blocking for focused work\n- Weekly review on Sundays\n- Monthly goal setting\n- Quarterly reflection and adjustment"
+                                        }
+                                    ]
+                                },
+                                {
+                                    name: "Weekly Goals",
+                                    type: "note",
+                                    source: "Quick Notes",
+                                    date: "2025-05-14",
+                                    tags: ["productivity", "goals"],
+                                    content: "# Weekly Goals (May 14-20)\n\n- Complete JEAN Memory knowledge graph\n- Finish reading Atomic Habits\n- Set up new automation for home office\n- Schedule team retrospective"
+                                }
+                            ]
+                        },
+                        {
+                            name: "Work",
+                            type: "folder",
+                            children: [
+                                {
+                                    name: "Meeting Notes",
+                                    type: "note",
+                                    source: "Obsidian",
+                                    date: "2025-05-12",
+                                    tags: ["meetings", "team"],
+                                    content: "# Team Sync - May 12\n\n- Discussed roadmap for Q3\n- Assigned tasks for upcoming sprint\n- Reviewed customer feedback\n- Action items:\n  - Alex: Update documentation\n  - Sam: Fix priority bugs\n  - Jordan: Prepare demo for next call"
+                                },
+                                {
+                                    name: "Project Ideas",
+                                    type: "note",
+                                    source: "Obsidian",
+                                    date: "2025-05-10",
+                                    tags: ["ideas", "projects"],
+                                    content: "# Project Ideas\n\n- Personal knowledge management system\n- Smart home automation hub\n- AI writing assistant integration\n- Cross-platform note synchronization"
+                                }
+                            ]
+                        }
+                    ]
+                };
+                
+                return data;
+            }
+            
+            function createForceGraph(data) {
+                // Clear any existing content
+                container.selectAll("*").remove();
+                
+                // Set up the simulation
+                const simulation = d3.forceSimulation(data.nodes)
+                    .force("link", d3.forceLink(data.links).id(d => d.id).distance(100))
+                    .force("charge", d3.forceManyBody().strength(-300))
+                    .force("center", d3.forceCenter(svg.node().clientWidth / 2, svg.node().clientHeight / 2))
+                    .force("collision", d3.forceCollide().radius(50));
+                
+                // Create links
+                const link = container.append("g")
+                    .attr("class", "links")
+                    .selectAll("line")
+                    .data(data.links)
+                    .enter().append("line")
+                    .attr("class", "link")
+                    .attr("stroke", "#4a5568")
+                    .attr("stroke-width", d => Math.sqrt(d.value));
+                
+                // Create nodes
+                const node = container.append("g")
+                    .attr("class", "nodes")
+                    .selectAll(".node")
+                    .data(data.nodes)
+                    .enter().append("g")
+                    .attr("class", "node")
+                    .call(d3.drag()
+                        .on("start", dragstarted)
+                        .on("drag", dragged)
+                        .on("end", dragended));
+                
+                // Add circles to nodes
+                node.append("circle")
+                    .attr("r", d => {
+                        switch(d.source) {
+                            case "Obsidian": return 12;
+                            case "GitHub": return 10;
+                            case "Quick Notes": return 8;
+                            default: return 10;
+                        }
+                    })
+                    .attr("fill", d => {
+                        switch(d.source) {
+                            case "Obsidian": return "#9580ff";
+                            case "GitHub": return "#6e5494";
+                            case "Quick Notes": return "#34a853";
+                            default: return "#4299e1";
+                        }
+                    })
+                    .attr("stroke", "#e2e8f0")
+                    .attr("stroke-width", 1);
+                
+                // Add node labels
+                node.append("text")
+                    .attr("dx", 14)
+                    .attr("dy", ".35em")
+                    .text(d => d.name)
+                    .attr("fill", "#e2e8f0")
+                    .style("font-size", "11px")
+                    .style("pointer-events", "none");
+                
+                // Add icons inside nodes based on source
+                node.append("text")
+                    .attr("text-anchor", "middle")
+                    .attr("dy", ".35em")
+                    .attr("fill", "#fff")
+                    .style("font-size", "8px")
+                    .style("pointer-events", "none")
+                    .text(d => {
+                        switch(d.source) {
+                            case "Obsidian": return "O";
+                            case "GitHub": return "G";
+                            case "Quick Notes": return "N";
+                            default: return "?";
+                        }
+                    });
+                
+                // Node click event for details
+                node.on("click", function(event, d) {
+                    showNodeDetails(d);
+                    
+                    // Highlight connected nodes
+                    const connectedNodeIds = new Set();
+                    data.links.forEach(link => {
+                        if (link.source.id === d.id || link.target.id === d.id) {
+                            connectedNodeIds.add(link.source.id);
+                            connectedNodeIds.add(link.target.id);
+                        }
+                    });
+                    
+                    node.selectAll("circle").attr("opacity", node => 
+                        connectedNodeIds.has(node.id) || node.id === d.id ? 1 : 0.3);
+                    
+                    link.attr("opacity", link => 
+                        link.source.id === d.id || link.target.id === d.id ? 1 : 0.1);
+                    
+                    // Reset after delay
+                    setTimeout(() => {
+                        node.selectAll("circle").attr("opacity", 1);
+                        link.attr("opacity", 1);
+                    }, 3000);
+                });
+                
+                // Update positions on simulation tick
+                simulation.on("tick", () => {
+                    link
+                        .attr("x1", d => d.source.x)
+                        .attr("y1", d => d.source.y)
+                        .attr("x2", d => d.target.x)
+                        .attr("y2", d => d.target.y);
+                    
+                    node
+                        .attr("transform", d => `translate(${d.x},${d.y})`);
+                });
+                
+                // Drag functions
+                function dragstarted(event, d) {
+                    if (!event.active) simulation.alphaTarget(0.3).restart();
+                    d.fx = d.x;
+                    d.fy = d.y;
+                }
+                
+                function dragged(event, d) {
+                    d.fx = event.x;
+                    d.fy = event.y;
+                }
+                
+                function dragended(event, d) {
+                    if (!event.active) simulation.alphaTarget(0);
+                    d.fx = null;
+                    d.fy = null;
+                }
+            }
+            
+            function createTreeView(data) {
+                // Clear any existing content
+                container.selectAll("*").remove();
+                
+                // Set up tree layout
+                const width = svg.node().clientWidth;
+                const height = svg.node().clientHeight;
+                
+                const treeLayout = d3.tree()
+                    .size([height - 100, width - 200]);
+                
+                // Convert data to hierarchy
+                const root = d3.hierarchy(data);
+                
+                // Calculate node positions
+                const treeData = treeLayout(root);
+                
+                // Add links
+                container.selectAll(".link")
+                    .data(treeData.links())
+                    .enter().append("path")
+                    .attr("class", "link")
+                    .attr("stroke", "#4a5568")
+                    .attr("d", d3.linkHorizontal()
+                        .x(d => d.y)
+                        .y(d => d.x));
+                
+                // Add nodes
+                const node = container.selectAll(".node")
+                    .data(treeData.descendants())
+                    .enter().append("g")
+                    .attr("class", d => "node" + (d.children ? " node--internal" : " node--leaf"))
+                    .attr("transform", d => `translate(${d.y},${d.x})`)
+                    .on("click", function(event, d) {
+                        if (d.data.type === "note") {
+                            showNodeDetails(d.data);
+                        }
+                    });
+                
+                // Add node circles
+                node.append("circle")
+                    .attr("r", d => {
+                        if (d.data.type === "root") return 8;
+                        if (d.data.type === "folder") return 6;
+                        return 5;
+                    })
+                    .attr("fill", d => {
+                        if (d.data.type === "root") return "#4299e1";
+                        if (d.data.type === "folder") return "#f6e05e";
+                        
+                        switch(d.data.source) {
+                            case "Obsidian": return "#9580ff";
+                            case "GitHub": return "#6e5494";
+                            case "Quick Notes": return "#34a853";
+                            default: return "#4299e1";
+                        }
+                    })
+                    .attr("stroke", "#e2e8f0")
+                    .attr("stroke-width", 1);
+                
+                // Add folder icons
+                node.filter(d => d.data.type === "folder")
+                    .append("text")
+                    .attr("text-anchor", "middle")
+                    .attr("dy", ".35em")
+                    .text("📁")
+                    .attr("font-size", "10px")
+                    .attr("opacity", 0.8)
+                    .attr("x", -15);
+                
+                // Add node labels
+                node.append("text")
+                    .attr("dy", "0.31em")
+                    .attr("x", d => d.children ? -10 : 10)
+                    .attr("text-anchor", d => d.children ? "end" : "start")
+                    .text(d => d.data.name)
+                    .attr("fill", "#e2e8f0")
+                    .style("font-size", "11px")
+                    .style("font-weight", d => 
+                        d.data.type === "root" || d.data.type === "folder" ? "bold" : "normal");
+            }
+            
+            function showNodeDetails(nodeData) {
+                const detailsPanel = document.getElementById('node-details');
+                
+                // Fill in the details
+                document.getElementById('detail-title').textContent = nodeData.name;
+                document.getElementById('detail-source').textContent = `From: ${nodeData.source || 'Unknown'}`;
+                
+                // Format date if available
+                if (nodeData.date) {
+                    const date = new Date(nodeData.date);
+                    document.getElementById('detail-date').textContent = `Created: ${date.toLocaleDateString()}`;
+                } else {
+                    document.getElementById('detail-date').textContent = 'Created: Unknown';
+                }
+                
+                // Set tags
+                if (nodeData.tags && nodeData.tags.length > 0) {
+                    document.getElementById('detail-tags').style.display = 'block';
+                    document.getElementById('detail-tags-list').textContent = nodeData.tags.join(', ');
+                } else {
+                    document.getElementById('detail-tags').style.display = 'none';
+                }
+                
+                document.getElementById('detail-content').textContent = nodeData.content || 'No content available';
+                
+                // Show the details panel
+                detailsPanel.style.display = 'block';
+                
+                // Add event listener to close the panel when clicking elsewhere
+                setTimeout(() => {
+                    const clickHandler = function(e) {
+                        if (!detailsPanel.contains(e.target)) {
+                            detailsPanel.style.display = 'none';
+                            document.removeEventListener('click', clickHandler);
+                        }
+                    };
+                    document.addEventListener('click', clickHandler);
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html> 

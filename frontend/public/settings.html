@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - JEAN Memory</title>
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/notifications.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="js/auth.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">J</div>
+                <h1>JEAN Memory</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="dashboard.html"><i class="icon-home"></i>Dashboard</a></li>
+                <li><a href="chat.html"><i class="icon-chat"></i>Chat</a></li>
+                <li><a href="notes.html"><i class="icon-notes"></i>Notes</a></li>
+                <li><a href="knowledge-tree.html"><i class="icon-tree"></i>Knowledge Graph</a></li>
+                <li><a href="integrations.html"><i class="icon-connect"></i>Integrations</a></li>
+                <li><a href="profile.html"><i class="icon-user"></i>Profile</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <a href="settings.html" class="active"><i class="icon-settings"></i>Settings</a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Settings</h1>
+                <div id="user-display" class="user-display">
+                    <!-- Will be populated by auth.js -->
+                </div>
+            </header>
+
+            <div class="settings-container">
+                <div class="settings-section">
+                    <h2>Application Settings</h2>
+                    
+                    <div class="settings-card">
+                        <div class="settings-group">
+                            <h3>Display</h3>
+                            <div class="setting-item">
+                                <div class="setting-label">Theme</div>
+                                <div class="setting-control">
+                                    <select id="theme-select">
+                                        <option value="light">Light</option>
+                                        <option value="dark">Dark</option>
+                                        <option value="system">System Default</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <h3>Notifications</h3>
+                            <div class="setting-item">
+                                <div class="setting-label">Email Notifications</div>
+                                <div class="setting-control">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="email-notifications">
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <div class="setting-label">Browser Notifications</div>
+                                <div class="setting-control">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="browser-notifications" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h2>Privacy</h2>
+                    
+                    <div class="settings-card">
+                        <div class="settings-group">
+                            <h3>Data Storage</h3>
+                            <div class="setting-item">
+                                <div class="setting-label">Store History</div>
+                                <div class="setting-control">
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="store-history" checked>
+                                        <span class="toggle-slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="setting-description">
+                                When enabled, your interaction history will be stored to improve AI responses.
+                            </div>
+                        </div>
+                        
+                        <div class="settings-group">
+                            <h3>Data Management</h3>
+                            <button id="export-data" class="btn btn-secondary">Export All Data</button>
+                            <button id="delete-data" class="btn btn-danger">Delete All Data</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h2>Account</h2>
+                    
+                    <div class="settings-card">
+                        <div class="settings-group">
+                            <h3>Account Management</h3>
+                            <button id="change-password" class="btn btn-secondary">Change Password</button>
+                            <button id="logout-btn" class="btn btn-secondary">Logout</button>
+                            <button id="delete-account" class="btn btn-danger">Delete Account</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Require authentication for this page
+            if (!AuthManager.requireAuth()) {
+                return; // Auth Manager will redirect if not logged in
+            }
+            
+            // Set up event listeners for settings
+            document.getElementById('theme-select').addEventListener('change', function(e) {
+                const theme = e.target.value;
+                showNotification(`Theme changed to ${theme}`, 'info');
+                // In a real app, this would save the theme preference
+            });
+            
+            document.getElementById('logout-btn').addEventListener('click', function() {
+                AuthManager.logout();
+            });
+            
+            document.getElementById('export-data').addEventListener('click', function() {
+                showNotification('Preparing data export...', 'info');
+                // This would trigger a data export in a real app
+            });
+            
+            document.getElementById('delete-data').addEventListener('click', function() {
+                if (confirm('Are you sure you want to delete all your data? This action cannot be undone.')) {
+                    showNotification('Processing data deletion request...', 'warning');
+                    // This would handle data deletion in a real app
+                }
+            });
+            
+            document.getElementById('delete-account').addEventListener('click', function() {
+                if (confirm('Are you sure you want to delete your account? All data will be lost permanently.')) {
+                    showNotification('Processing account deletion request...', 'warning');
+                    // This would handle account deletion in a real app
+                }
+            });
+        });
+    </script>
+    
+    <style>
+        .settings-container {
+            padding: 1rem 0;
+        }
+        
+        .settings-section {
+            margin-bottom: 2rem;
+        }
+        
+        .settings-section h2 {
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+            color: #333;
+        }
+        
+        .settings-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .settings-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .settings-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        .settings-group h3 {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 0.5rem;
+        }
+        
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .setting-label {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .setting-description {
+            margin-top: -0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .setting-control select {
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            background-color: #f8f9fc;
+            min-width: 150px;
+        }
+        
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 46px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .3s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #4a6cff;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 0.75rem 1.25rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-block;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .btn-secondary {
+            background-color: #f0f2ff;
+            color: #4a6cff;
+            border: 1px solid #d8deff;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e8ecff;
+        }
+        
+        .btn-danger {
+            background-color: #fff0f0;
+            color: #dc3545;
+            border: 1px solid #ffd8d8;
+        }
+        
+        .btn-danger:hover {
+            background-color: #ffe8e8;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .setting-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .setting-label {
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
+</body>
+</html> 
