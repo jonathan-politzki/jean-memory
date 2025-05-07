@@ -352,4 +352,23 @@ class ContextDatabase:
                 return results
         except Exception as e:
             logger.exception(f"Error searching context for query '{query}': {e}")
-            return [] 
+            return []
+
+    async def delete_context_by_type_and_user(self, user_id: int, tenant_id: str, context_type: str) -> bool:
+        """Delete all context entries for a specific user, tenant, and context_type."""
+        if not self.pool:
+            logger.error("Database pool not initialized in delete_context_by_type_and_user")
+            return False
+        
+        try:
+            async with self.pool.acquire() as conn:
+                result = await conn.execute(
+                    "DELETE FROM context WHERE user_id = $1 AND tenant_id = $2 AND context_type = $3",
+                    user_id, tenant_id, context_type
+                )
+                # result from DELETE is like 'DELETE N' where N is number of rows deleted
+                logger.info(f"Deleted context for user {user_id}, tenant {tenant_id}, type '{context_type}'. Result: {result}")
+                return True # True if command executed, not necessarily if rows were deleted
+        except Exception as e:
+            logger.exception(f"Error deleting context for user {user_id}, type '{context_type}': {e}")
+            return False 

@@ -2,89 +2,75 @@
 
 ## Current Functionality
 - ✅ **Frontend UI**: Modern AI-style interface with responsive design
-- ✅ **Authentication**: Google OAuth integration working properly, including correct parameter passing to frontend.
-- ✅ **CORS & API Communication**: Frontend-backend communication properly configured
-- ✅ **Containerization**: Full application (frontend, backend, postgres, redis) successfully containerized with Docker Compose for consistent builds and execution.
-- ✅ **MCP Endpoint**: Full Model Context Protocol implementation with SDK, tools, and resources
-- ✅ **Context Router**: Structure for routing different context types
-- ✅ **Database Integration**: PostgreSQL connection and schema established
-- ✅ **Note Storage**: Notes can be created and stored in the database
-- ✅ **Error Handling**: Development mode with fallbacks for API validation
+- ✅ **Authentication**: Google OAuth integration working properly.
+- ✅ **CORS & API Communication**: Frontend-backend communication properly configured.
+- ✅ **Containerization**: Full application (frontend, backend, postgres, redis) containerized with Docker Compose.
+- ✅ **MCP Endpoint**: Robust Model Context Protocol implementation via `stdio` for Claude Desktop.
+    - ✅ Core memory tools (`create_jean_memory_entry`, `access_jean_memory` with Gemini synthesis, `clear_jean_memory_bank`, `diagnose_list_gemini_models`).
+    - ✅ GitHub integration tools (pending token setup).
+    - ✅ Value extraction tools (using Gemini).
+    - ✅ Auth tools for MCP config.
+    - ✅ MCP Prompts defined for tool guidance.
+- ✅ **Context Banks**: System supports storing and retrieving data from different "context banks" using `context_type`.
+- ✅ **Database Integration**: PostgreSQL connection stable; schema for users and context established and working.
+- ✅ **Memory Storage & Retrieval**: Core functions for creating, retrieving, searching, and clearing memory entries are functional.
+- ✅ **Gemini Integration**: `access_jean_memory` tool successfully calls Gemini API for context synthesis (using `models/gemini-1.5-pro-latest`). Gemini error handling for model availability is improved.
+- ✅ **Error Handling**: Graceful error handling in tools and database interactions.
 
 ## Working Flow
-1. Run `docker-compose up` to start all services.
-2. Frontend server (port 3005) serves the user interface from its container.
-3. Backend server (port 8000 on host, internally 8000) provides API endpoints from its container.
-4. User logs in with Google OAuth.
-5. Backend authenticates and redirects to frontend with correct user credentials in URL.
-6. MCP configuration page shows Claude Desktop and IDE integration settings.
-7. Notes can be created and stored in the PostgreSQL database
-8. MCP server enables AI assistants to directly access user data through standardized protocol
+1. Run `docker-compose up -d` to start backend services (PostgreSQL).
+2. Configure `claude_desktop_config.json` to launch `backend/standalone_mcp_server.py` via `python3` with `stdio` transport, providing necessary `env` vars (`DATABASE_URL` pointing to `localhost:5433`, `GEMINI_API_KEY`, `JEAN_USER_ID`).
+3. Restart Claude Desktop.
+4. MCP tools for JEAN Memory populate in Claude Desktop.
+5. User can interact with Claude to:
+    - Store new memories in various context banks using `create_jean_memory_entry`.
+    - Access and synthesize memories using `access_jean_memory` (which internally uses Gemini).
+    - Clear memory banks using `clear_jean_memory_bank`.
+    - Other tools (GitHub, value extraction) are available but may depend on further setup (e.g., GitHub token).
 
 ## Architecture Improvements
-- ✅ **Database Singleton Pattern**: Ensures all app components use the same database connection
-- ✅ **API Key Validation**: Robust validation with development mode fallbacks
-- ✅ **Error Handling**: Graceful error handling and logging throughout the application
-- ✅ **MCP Integration**: Full Model Context Protocol implementation with proper tools and resources
+- ✅ **Database Singleton Pattern**: Ensures all app components use the same database connection.
+- ✅ **API Key Validation (Development Mode)**: Robust validation with development mode fallbacks for `stdio` context.
+- ✅ **Refactored MCP Tools**: Moved from specific "note" tools to a more generalized `core_memory_tools.py` (`create_jean_memory_entry`, `access_jean_memory`) and a `clear_jean_memory_bank` tool.
+- ✅ **`stdio` for Claude Desktop**: MCP server now uses `stdio` transport when launched by Claude Desktop, resolving previous connection and configuration issues.
+- ✅ **Gemini Model Name Corrected**: Successfully diagnosed and fixed Gemini API calls to use an available model (`models/gemini-1.5-pro-latest`).
+- ✅ **Asynchronous Operations**: Ensured Gemini API calls within async MCP tools are non-blocking.
 
 ## Next Steps
 
-### 1. Enhance Context Functionality
-- Implement note retrieval UI
-- Start with GitHub integration
-- Add vector embeddings for improved context search
+### 1. Thorough Testing & Refinement
+- Rigorously test `access_jean_memory` with various scenarios of relevant, partially relevant, and conflicting memories to evaluate Gemini synthesis quality and adherence to "honesty" in prompts.
+- Iteratively refine the Gemini prompt in `access_jean_memory` for optimal synthesis.
+- Test `value_extraction_tools`.
+- Implement a way to set the GitHub token (e.g., a new MCP tool `update_github_token` or manual DB entry) and then test `github_tools`.
 
-### 2. Full MCP Compliance
-- ✅ Implement using official MCP SDK
-- ✅ Add support for HTTP transport
-- ✅ Implement proper authentication
-- ✅ Support for MCP tools, resources, and prompts
+### 2. Enhance Context Functionality
+- Consider UI implications for managing different context banks if a frontend is to interact directly (beyond MCP).
+- Further develop the "intelligent" aspects of `access_jean_memory`:
+    - Smarter `context_type` selection if `target_context_types` is not provided.
+    - More advanced query generation for `db.search_context`.
 
-### 3. Security & Production Readiness
-- Remove development mode fallbacks for production
-- Implement proper API key rotation
-- Add rate limiting and additional security measures
+### 3. Full MCP Compliance & Features
+- Review and test all defined MCP Prompts for utility.
+- Evaluate if specific resource URIs (like `notes://search/{query}`) are still needed or if `access_jean_memory` covers these use cases adequately.
 
-## How to Run
+### 4. Security & Production Readiness
+- Review and potentially remove/refine `MCPAuthMiddleware` if `stdio` is the primary local interaction method and authentication is handled differently.
+- Remove any remaining development mode fallbacks if moving towards production.
+- Consider API key rotation strategies for services like Gemini if the key is bundled.
 
-### Backend
-```bash
-# Now run via Docker Compose
-# cd backend
-# # Update .env with correct settings
-# python3 -m uvicorn app.main:app --reload --port 8080
-docker-compose up # (handles backend)
-```
-
-### Frontend
-```bash
-# Now run via Docker Compose
-# cd frontend
-# node server.js
-# # Go to http://localhost:3005
-docker-compose up # (handles frontend, go to http://localhost:3005)
-```
-
-## Authentication Flow
-The application now supports Google authentication with proper API key handling. After authentication, user ID and API key are correctly passed to the frontend, and users can create and store notes that persist in the database. All services run via Docker Compose.
+## How to Run (for MCP with Claude Desktop)
+1. Ensure Docker is running.
+2. In the project root, run `docker-compose up -d` (primarily for the `postgres` service).
+3. Configure `~/Library/Application Support/Claude/claude_desktop_config.json` as per documentation (stdio launch of `backend/standalone_mcp_server.py` with correct `env` vars for `DATABASE_URL`, `GEMINI_API_KEY`, `JEAN_USER_ID`).
+4. Completely quit and restart Claude Desktop.
 
 ## MCP Integration
-JEAN is now an "MCP first" application, implementing the full Model Context Protocol as defined by Anthropic. This allows seamless integration with Claude Desktop and IDE extensions like Cursor and VS Code. Users can:
+JEAN is an "MCP first" application. The `stdio`-based integration with Claude Desktop is now the primary local development and testing method. The system provides:
+- Core tools: `create_jean_memory_entry`, `access_jean_memory`, `clear_jean_memory_bank`, `diagnose_list_gemini_models`.
+- Specialized tools: GitHub integration, value extraction, MCP configuration.
+- MCP Prompts for guiding LLM interaction.
 
-1. Authenticate with Google OAuth
-2. Receive personalized MCP configuration for their Claude Desktop and IDE extension
-3. Use AI assistants to access and manage their personal memory data
-4. Store and retrieve notes, GitHub data, and other context through standardized MCP tools and resources
-
-The MCP implementation provides:
-- Tool endpoints for note creation, search, and retrieval
-- GitHub integration for repositories and code search
-- Configuration resources for easy setup
-- Authentication middleware for secure access
-- Full SDK implementation based on official Anthropic specifications
-
-## Development Mode
-For testing during development, the application includes fallbacks that allow:
-- Any API key to be accepted (mapped to user_id=1)
-- Automatic creation of test users if needed
-- Detailed logging for debugging authentication issues 
+## Development Mode Notes
+- `JEAN_USER_ID` and `JEAN_API_KEY` in `claude_desktop_config.json`'s `env` block provide context for the `stdio` launched server.
+- `validate_api_key` in `context_storage.py` has development fallbacks; review for production. 

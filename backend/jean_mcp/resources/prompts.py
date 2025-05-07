@@ -7,13 +7,39 @@ and provide better responses using contextual information.
 
 import logging
 from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.prompts import base
 
 logger = logging.getLogger(__name__)
 
 def register_prompts(mcp: FastMCP):
-    """Register all prompts with the MCP server."""
-    logger.info("Registering prompts with MCP server")
+    """Register all MCP prompts with the server."""
+    logger.info("Registering MCP prompts...")
     
+    @mcp.prompt(name="jean_memory_lookup")
+    def jean_memory_lookup_prompt(
+        current_query: str,
+        reason_for_lookup: str,
+        optional_search_topics: str = ""
+    ) -> list:
+        """Guides the AI to use the access_jean_memory tool effectively.
+        Use this prompt when you believe accessing the user's general memory (notes, preferences, etc.)
+        could provide crucial context or answer parts of the user's current_query.
+
+        Args:
+            current_query: The user's current question or statement to you.
+            reason_for_lookup: Clearly explain what information you are hoping to find or what understanding you aim to gain from the memory system to help with the current_query.
+            optional_search_topics: Optional comma-separated list of specific topics to focus the memory search on.
+        """
+        
+        return [
+            base.UserMessage(f"To help me respond to your query: '{current_query}', I need to understand more about your relevant context or history. "),
+            base.AssistantMessage(
+                content=f"I will access JEAN Memory. I am looking for: {reason_for_lookup}.",
+            )
+        ]
+
+    logger.info("MCP Prompts registered.")
+
     @mcp.prompt("system_introduction")
     def system_introduction() -> str:
         """Introduction prompt explaining what JEAN Memory is."""

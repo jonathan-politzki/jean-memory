@@ -10,7 +10,7 @@ import os
 import sys
 
 # Use the installed MCP package by its full path
-sys.path.insert(0, '/usr/local/lib/python3.10/site-packages')
+# sys.path.insert(0, '/usr/local/lib/python3.10/site-packages') # Commenting this out
 from mcp.server.fastmcp import FastMCP, Context, Image
 from mcp.server.fastmcp.prompts import base
 from starlette.middleware import Middleware
@@ -92,9 +92,13 @@ def initialize_mcp_server():
     """Initialize and register all tools and resources."""
     logger.info("Initializing MCP tools and resources...")
     
-    # Import and register note tools
-    from jean_mcp.tools.note_tools import register_note_tools
-    register_note_tools(mcp)
+    # Import and register core memory tools
+    from jean_mcp.tools.core_memory_tools import register_core_memory_tools
+    register_core_memory_tools(mcp)
+    
+    # Comment out or remove old note_tools registration
+    # from jean_mcp.tools.note_tools import register_note_tools
+    # register_note_tools(mcp)
     
     # Import and register github tools
     from jean_mcp.tools.github_tools import register_github_tools
