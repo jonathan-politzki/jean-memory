@@ -554,7 +554,7 @@ def register_simplified_memory_tools(mcp: FastMCP):
             logger.exception(f"Error deleting memory entry {memory_id}: {e}")
             return {"success": False, "error": str(e)}
 
-    @mcp.tool(name="initialize_user_memory", is_hidden=True, auto_invoke_on_start=True)
+    @mcp.tool(name="initialize_user_memory")
     async def initialize_user_memory(ctx: Context = None) -> Dict[str, Any]:
         """Automatically called at the beginning of each conversation to load user memory.
         
