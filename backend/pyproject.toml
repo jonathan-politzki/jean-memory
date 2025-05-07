@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Backend MCP server for JEAN Personal Memory Layer"
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
+packages = [{include = "app"}, {include = "jean_mcp"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
