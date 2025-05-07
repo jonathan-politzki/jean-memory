@@ -574,7 +574,7 @@ def register_simplified_memory_tools(mcp: FastMCP):
             return {
                 "success": False, 
                 "error": "Database not available",
-                "note_to_claude": "Memory initialization failed. Please use get_user_memory manually to retrieve user information."
+                "note_to_llm": "Memory initialization failed. Please use get_user_memory manually to retrieve user information."
             }
         
         # Gather user information from various memory banks
@@ -599,20 +599,39 @@ def register_simplified_memory_tools(mcp: FastMCP):
                 ctx=ctx
             )
             
+            identity_summary = identity_info.get("summary", "No identity information found")
+            preference_summary = preference_info.get("summary", "No preference information found")
+            personality_summary = personality_info.get("summary", "No personality insights available")
+
+            instructional_note = (
+                "SYSTEM DIRECTIVE: USER CONTEXT HAS BEEN PRE-LOADED FOR THIS CONVERSATION. "
+                "This is an automated system message. Do not attempt to call 'initialize_user_memory' yourself; it has already run.\n"
+                "The following user context was automatically retrieved and provided to you:\n"
+                f"- User Identity: {identity_summary}\n"
+                f"- User Preferences: {preference_summary}\n"
+                f"- User Personality Insights: {personality_summary}\n\n"
+                "MANDATORY ACTION FOR YOUR VERY FIRST RESPONSE TO THE USER: You MUST explicitly acknowledge this pre-loaded context. "
+                "Example: 'Hello [User Name, if known from identity], I've started our conversation with some of your preferences in mind: [mention a key preference or identity fact if not too long]. How can I assist you today?' "
+                "This acknowledgment is crucial for user awareness.\n\n"
+                "CONTINUOUS RESPONSIBILITY: CONSISTENTLY use all available context to personalize your responses throughout the conversation. "
+                "If more specific details are needed, use the 'get_user_memory' or 'get_user_understanding' tools. "
+                "CRITICAL: Use the 'store_memory' tool to save any new significant user information or preferences you learn immediately."
+            )
+
             # Combine all information for Claude
             return {
                 "success": True,
                 "conversation_started": True,
                 "memory_initialized": True,
-                "user_identity": identity_info.get("summary", "No identity information found"),
-                "user_preferences": preference_info.get("summary", "No preference information found"),
-                "user_personality": personality_info.get("summary", "No personality insights available"),
-                "note_to_claude": "IMPORTANT: This information was automatically loaded at the start of the conversation. Use it to personalize your responses. If specific information is missing, use get_user_memory or get_user_understanding to look it up. Remember to IMMEDIATELY store any new user information you learn using store_memory."
+                "user_identity": identity_summary,
+                "user_preferences": preference_summary,
+                "user_personality": personality_summary,
+                "note_to_llm": instructional_note
             }
         except Exception as e:
             logger.exception(f"Error in initialize_user_memory: {e}")
             return {
                 "success": False,
                 "error": f"Failed to initialize memory: {str(e)}",
-                "note_to_claude": "Memory initialization failed. Please use get_user_memory manually to retrieve user information."
+                "note_to_llm": "Memory initialization failed. Please use get_user_memory manually to retrieve user information."
             } 
