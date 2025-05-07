@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notes - JEAN Memory</title>
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
     <script src="js/notifications.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="js/auth.js"></script>
@@ -18,15 +19,15 @@
                 <h1>JEAN Memory</h1>
             </div>
             <ul class="nav-links">
-                <li><a href="dashboard.html"><i class="icon-home"></i>Dashboard</a></li>
-                <li><a href="chat.html"><i class="icon-chat"></i>Chat</a></li>
-                <li class="active"><a href="notes.html"><i class="icon-notes"></i>Notes</a></li>
-                <li><a href="knowledge-tree.html"><i class="icon-tree"></i>Knowledge Graph</a></li>
-                <li><a href="integrations.html"><i class="icon-connect"></i>Integrations</a></li>
-                <li><a href="profile.html"><i class="icon-user"></i>Profile</a></li>
+                <li><a href="dashboard.html"><i class="ti ti-home"></i>Dashboard</a></li>
+                <li><a href="chat.html"><i class="ti ti-messages"></i>Chat</a></li>
+                <li class="active"><a href="notes.html"><i class="ti ti-notebook"></i>Notes</a></li>
+                <li><a href="knowledge-tree.html"><i class="ti ti-sitemap"></i>Knowledge Graph</a></li>
+                <li><a href="integrations.html"><i class="ti ti-plug-connected"></i>Integrations</a></li>
+                <li><a href="profile.html"><i class="ti ti-user-circle"></i>Profile</a></li>
             </ul>
             <div class="sidebar-footer">
-                <a href="settings.html"><i class="icon-settings"></i>Settings</a>
+                <a href="settings.html"><i class="ti ti-settings"></i>Settings</a>
             </div>
         </nav>
 
@@ -43,8 +44,8 @@
                 <div class="notes-sidebar">
                     <div class="notes-sidebar-header">
                         <input type="text" id="search-notes" placeholder="Search notes...">
-                        <button id="new-note-btn" class="new-note-btn">
-                            <i class="icon-plus"></i>
+                        <button id="new-note-btn" class="new-note-btn" title="New Note">
+                            <i class="ti ti-plus"></i>
                         </button>
                     </div>
                     
@@ -72,21 +73,21 @@
                     </div>
                 </div>
                 
-                <div class="note-editor">
+                <div class="note-editor card">
                     <div class="note-editor-header">
-                        <input type="text" id="note-title" value="Getting Started with JEAN Memory">
+                        <input type="text" id="note-title-editor" value="Getting Started with JEAN Memory">
                         <div class="note-actions">
                             <button class="note-action-btn" title="Save">
-                                <i class="icon-save"></i>
+                                <i class="ti ti-device-floppy"></i>
                             </button>
                             <button class="note-action-btn" title="Delete">
-                                <i class="icon-delete"></i>
+                                <i class="ti ti-trash"></i>
                             </button>
                         </div>
                     </div>
                     
                     <div class="note-editor-content">
-                        <textarea id="note-content" placeholder="Write your note here...">## Welcome to JEAN Memory!
+                        <textarea id="note-content-editor" placeholder="Write your note here...">## Welcome to JEAN Memory!
 
 This is your personal AI memory layer, designed to enhance your AI assistants with your context.
 
@@ -123,8 +124,8 @@ Happy memory building!
             
             // New note button
             document.getElementById('new-note-btn').addEventListener('click', function() {
-                document.getElementById('note-title').value = 'New Note';
-                document.getElementById('note-content').value = '';
+                document.getElementById('note-title-editor').value = 'New Note';
+                document.getElementById('note-content-editor').value = '';
                 
                 // Remove active class from all notes
                 const noteItems = document.querySelectorAll('.note-item');
@@ -156,43 +157,49 @@ Happy memory building!
     <style>
         .notes-container {
             display: flex;
-            height: calc(100vh - 130px);
-            padding: 1rem 0;
-            gap: 1rem;
+            height: 100%;
+            max-height: calc(100vh - 70px - 40px);
+            padding: 0;
+            gap: 1.5rem;
         }
         
         .notes-sidebar {
-            width: 300px;
+            width: 320px;
             flex-shrink: 0;
-            border-right: 1px solid #eee;
+            border-right: 1px solid #e5e7eb;
             display: flex;
             flex-direction: column;
+            background-color: #f9fafb;
         }
         
         .notes-sidebar-header {
-            padding: 0 1rem 1rem;
+            padding: 1rem 1.5rem;
             display: flex;
-            gap: 0.5rem;
-            border-bottom: 1px solid #eee;
+            gap: 0.75rem;
+            border-bottom: 1px solid #e5e7eb;
+            align-items: center;
         }
         
         #search-notes {
             flex: 1;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 6px;
+            padding: 0.6rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
             font-size: 0.9rem;
+            background-color: white;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
         
         #search-notes:focus {
             outline: none;
             border-color: #4a6cff;
+            box-shadow: 0 0 0 2px rgba(74, 108, 255, 0.2);
         }
         
         .new-note-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 6px;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
             border: none;
             background-color: #4a6cff;
             color: white;
@@ -200,144 +207,167 @@ Happy memory building!
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s ease;
+            font-size: 1.2rem;
         }
         
         .new-note-btn:hover {
             background-color: #3a5cee;
         }
         
-        .icon-plus::before {
-            content: "+";
-            font-size: 1.2rem;
-        }
-        
         .notes-list {
             flex: 1;
             overflow-y: auto;
+            padding: 0.5rem 0;
         }
         
         .note-item {
-            padding: 1rem;
-            border-bottom: 1px solid #eee;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s ease;
+        }
+        
+        .note-item:last-child {
+            border-bottom: none;
         }
         
         .note-item:hover {
-            background-color: #f5f7fa;
+            background-color: #f0f2f6;
         }
         
         .note-item.active {
-            background-color: #f0f2ff;
+            background-color: #eef2ff;
             border-left: 3px solid #4a6cff;
+            padding-left: calc(1.5rem - 3px);
+        }
+        
+        .note-item.active .note-title {
+            color: #4a6cff;
         }
         
         .note-title {
             font-weight: 600;
-            margin-bottom: 0.25rem;
-            color: #333;
+            margin-bottom: 0.35rem;
+            color: #1f2937;
+            font-size: 0.95rem;
         }
         
         .note-preview {
-            font-size: 0.85rem;
-            color: #666;
+            font-size: 0.875rem;
+            color: #6b7280;
             margin-bottom: 0.5rem;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
-            line-height: 1.4;
+            line-height: 1.5;
         }
         
         .note-meta {
-            font-size: 0.75rem;
-            color: #888;
+            font-size: 0.8rem;
+            color: #9ca3af;
         }
         
         .note-editor {
             flex: 1;
             display: flex;
             flex-direction: column;
-            background-color: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
             overflow: hidden;
         }
         
         .note-editor-header {
-            padding: 1rem;
-            border-bottom: 1px solid #eee;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background-color: #f9fafb;
         }
         
-        #note-title {
+        #note-title-editor {
             flex: 1;
-            font-size: 1.25rem;
+            font-size: 1.35rem;
             font-weight: 600;
             border: none;
             padding: 0.5rem 0;
-            color: #333;
+            color: #1f2937;
+            background-color: transparent;
         }
         
-        #note-title:focus {
+        #note-title-editor:focus {
             outline: none;
         }
         
         .note-actions {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.75rem;
         }
         
         .note-action-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 6px;
-            border: none;
-            background-color: #f0f2ff;
-            color: #4a6cff;
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            background-color: white;
+            color: #4b5563;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background-color 0.2s;
+            transition: all 0.2s ease;
+            font-size: 1.1rem;
         }
         
         .note-action-btn:hover {
-            background-color: #e8ecff;
-        }
-        
-        .icon-save::before {
-            content: "💾";
-            font-size: 1rem;
-        }
-        
-        .icon-delete::before {
-            content: "🗑️";
-            font-size: 1rem;
+            background-color: #f3f4f6;
+            color: #4a6cff;
+            border-color: #4a6cff;
         }
         
         .note-editor-content {
             flex: 1;
-            padding: 1rem;
+            padding: 1.5rem;
             overflow-y: auto;
+            background-color: white;
         }
         
-        #note-content {
+        #note-content-editor {
             width: 100%;
             height: 100%;
             border: none;
             resize: none;
-            font-family: inherit;
-            font-size: 0.95rem;
-            line-height: 1.6;
-            color: #333;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            line-height: 1.7;
+            color: #374151;
+            background-color: transparent;
         }
         
-        #note-content:focus {
+        #note-content-editor:focus {
             outline: none;
+        }
+        
+        .notes-list.empty {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #9ca3af;
+            padding: 2rem;
+        }
+
+        .notes-list.empty .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #d1d5db;
+        }
+
+        .notes-list.empty h3 {
+            font-size: 1.2rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
         }
         
         /* Responsive adjustments */

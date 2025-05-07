@@ -6,27 +6,29 @@
     <title>Profile - JEAN Memory</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/profile.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="js/auth.js"></script>
+    <script src="js/notifications.js"></script>
 </head>
 <body>
     <div class="app-container">
         <!-- Sidebar Navigation -->
         <nav class="sidebar">
             <div class="logo">
-                <img src="img/jean-logo.svg" alt="JEAN Memory">
+                <div class="logo-icon">J</div>
                 <h1>JEAN Memory</h1>
             </div>
             <ul class="nav-links">
-                <li><a href="index.html"><i class="icon-home"></i>Home</a></li>
-                <li><a href="chat.html"><i class="icon-chat"></i>Chat</a></li>
-                <li><a href="notes.html"><i class="icon-notes"></i>Notes</a></li>
-                <li><a href="knowledge-tree.html"><i class="icon-tree"></i>Knowledge Graph</a></li>
-                <li><a href="integrations.html"><i class="icon-connect"></i>Integrations</a></li>
-                <li class="active"><a href="profile.html"><i class="icon-user"></i>Profile</a></li>
+                <li><a href="dashboard.html"><i class="ti ti-home"></i>Dashboard</a></li>
+                <li><a href="chat.html"><i class="ti ti-messages"></i>Chat</a></li>
+                <li><a href="notes.html"><i class="ti ti-notebook"></i>Notes</a></li>
+                <li><a href="knowledge-tree.html"><i class="ti ti-sitemap"></i>Knowledge Graph</a></li>
+                <li><a href="integrations.html"><i class="ti ti-plug-connected"></i>Integrations</a></li>
+                <li class="active"><a href="profile.html"><i class="ti ti-user-circle"></i>Profile</a></li>
             </ul>
             <div class="sidebar-footer">
-                <a href="settings.html"><i class="icon-settings"></i>Settings</a>
+                <a href="settings.html"><i class="ti ti-settings"></i>Settings</a>
             </div>
         </nav>
 
@@ -42,7 +44,7 @@
             <div class="profile-container">
                 <div class="profile-section user-info-section">
                     <h2>Account Information</h2>
-                    <div class="profile-card">
+                    <div class="profile-card card">
                         <div class="profile-avatar" id="profile-avatar">
                             <!-- Avatar will be set by JS -->
                         </div>
@@ -56,13 +58,13 @@
 
                 <div class="profile-section">
                     <h2>JEAN Memory MCP Configuration</h2>
-                    <div class="config-card">
+                    <div class="config-card card">
                         <p class="info-text">Use this configuration with compatible AI assistants like Claude Desktop or Cursor to give them access to your JEAN Memory.</p>
                         
                         <div class="config-display">
                             <pre id="mcp-config">Loading configuration...</pre>
                             <button id="copy-config" class="btn btn-secondary">
-                                <i class="icon-copy"></i> Copy
+                                <i class="ti ti-copy"></i> Copy
                             </button>
                         </div>
                     </div>
@@ -70,18 +72,18 @@
 
                 <div class="profile-section">
                     <h2>API Key</h2>
-                    <div class="api-key-card">
+                    <div class="api-key-card card">
                         <p class="info-text">Your API key provides access to JEAN Memory. Keep it secure and don't share it publicly.</p>
                         
                         <div class="api-key-display">
                             <div class="api-key-field">
                                 <input type="password" id="api-key-input" readonly>
-                                <button id="toggle-key-visibility" class="btn btn-icon">
-                                    <i class="icon-eye"></i>
+                                <button id="toggle-key-visibility" class="btn btn-icon" title="Toggle visibility">
+                                    <i class="ti ti-eye"></i>
                                 </button>
                             </div>
                             <button id="copy-api-key" class="btn btn-secondary">
-                                <i class="icon-copy"></i> Copy
+                                <i class="ti ti-copy"></i> Copy
                             </button>
                         </div>
                     </div>
@@ -90,18 +92,18 @@
                 <div class="profile-section">
                     <h2>Quick Links</h2>
                     <div class="quick-links">
-                        <a href="integrations.html" class="quick-link-card">
-                            <i class="icon-connect"></i>
+                        <a href="integrations.html" class="quick-link-card card">
+                            <i class="ti ti-plug-connected"></i>
                             <h3>Connect Sources</h3>
                             <p>Link GitHub, Obsidian and other sources to enrich your AI's memory</p>
                         </a>
-                        <a href="knowledge-tree.html" class="quick-link-card">
-                            <i class="icon-tree"></i>
+                        <a href="knowledge-tree.html" class="quick-link-card card">
+                            <i class="ti ti-sitemap"></i>
                             <h3>View Knowledge Graph</h3>
                             <p>Visualize connections between your notes and data</p>
                         </a>
-                        <a href="settings.html" class="quick-link-card">
-                            <i class="icon-settings"></i>
+                        <a href="settings.html" class="quick-link-card card">
+                            <i class="ti ti-settings"></i>
                             <h3>Manage Settings</h3>
                             <p>Configure your JEAN Memory experience</p>
                         </a>
@@ -154,11 +156,11 @@
                         // Show copied feedback
                         const button = this;
                         const originalText = button.innerHTML;
-                        button.innerHTML = '<i class="icon-check"></i> Copied!';
+                        button.innerHTML = '<i class="ti ti-check"></i> Copied!';
                         button.classList.add('copied');
                         
                         setTimeout(() => {
-                            button.innerHTML = originalText;
+                            button.innerHTML = originalText.replace('icon-copy', 'ti ti-copy');
                             button.classList.remove('copied');
                         }, 2000);
                     })
@@ -174,10 +176,10 @@
                 
                 if (apiKeyInput.type === 'password') {
                     apiKeyInput.type = 'text';
-                    icon.className = 'icon-eye-off';
+                    icon.className = 'ti ti-eye-off';
                 } else {
                     apiKeyInput.type = 'password';
-                    icon.className = 'icon-eye';
+                    icon.className = 'ti ti-eye';
                 }
             });
             
@@ -189,11 +191,11 @@
                         // Show copied feedback
                         const button = this;
                         const originalText = button.innerHTML;
-                        button.innerHTML = '<i class="icon-check"></i> Copied!';
+                        button.innerHTML = '<i class="ti ti-check"></i> Copied!';
                         button.classList.add('copied');
                         
                         setTimeout(() => {
-                            button.innerHTML = originalText;
+                            button.innerHTML = originalText.replace('icon-copy', 'ti ti-copy');
                             button.classList.remove('copied');
                         }, 2000);
                     })

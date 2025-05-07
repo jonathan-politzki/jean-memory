@@ -4,7 +4,7 @@
     padding: 1rem 0;
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 2.5rem;
     max-width: 100%;
 }
 
@@ -13,32 +13,30 @@
 }
 
 .profile-section h2 {
-    margin: 0 0 1rem 0;
-    font-size: 1.25rem;
-    color: #333;
+    margin: 0 0 1.5rem 0;
+    font-size: 1.5rem;
+    color: #1f2937;
     font-weight: 600;
 }
 
 .profile-card {
-    background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-    padding: 1.5rem;
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: 2rem;
 }
 
 .profile-avatar {
-    width: 80px;
-    height: 80px;
+    width: 90px;
+    height: 90px;
     border-radius: 50%;
     overflow: hidden;
-    background-color: #f0f2ff;
+    background-color: #eef2ff;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    border: 3px solid white;
+    box-shadow: 0 0 0 3px #4a6cff;
 }
 
 .profile-avatar img {
@@ -55,8 +53,9 @@
     justify-content: center;
     background-color: #4a6cff;
     color: white;
-    font-size: 2rem;
-    font-weight: bold;
+    font-size: 2.25rem;
+    font-weight: 600;
+    line-height: 1;
 }
 
 .profile-details {
@@ -64,41 +63,41 @@
 }
 
 .profile-details h3 {
-    margin: 0 0 0.25rem 0;
-    font-size: 1.4rem;
-    color: #333;
+    margin: 0 0 0.35rem 0;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: #1f2937;
 }
 
 .profile-details p {
-    margin: 0;
-    color: #666;
-    font-size: 0.95rem;
-    line-height: 1.4;
+    margin: 0.25rem 0;
+    color: #6b7280;
+    font-size: 1rem;
+    line-height: 1.5;
 }
 
 .account-type {
     display: inline-block;
-    margin-top: 0.75rem !important;
-    padding: 0.25rem 0.6rem;
-    background-color: #f0f2ff;
-    color: #4a6cff !important;
+    margin-top: 1rem !important;
+    padding: 0.35rem 0.8rem;
+    background-color: #eef2ff;
+    color: #4338ca !important;
     border-radius: 20px;
-    font-size: 0.8rem !important;
+    font-size: 0.85rem !important;
     font-weight: 500;
+    border: 1px solid #c7d2fe;
 }
 
-.config-card, .api-key-card {
-    background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-    padding: 1.5rem;
+.config-card,
+.api-key-card {
+    padding: 1.5rem 2rem;
 }
 
 .info-text {
-    margin: 0 0 1rem 0;
-    color: #666;
+    margin: 0 0 1.25rem 0;
+    color: #6b7280;
     font-size: 0.95rem;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
 .config-display {
@@ -107,23 +106,23 @@
 }
 
 .config-display pre {
-    background-color: #f8f9fc;
-    border: 1px solid #e6e8f0;
+    background-color: #f3f4f6;
+    border: 1px solid #e5e7eb;
     border-radius: 8px;
-    padding: 1rem;
+    padding: 1.25rem;
     margin: 0;
     overflow-x: auto;
-    font-family: 'Courier New', monospace;
-    font-size: 0.85rem;
-    line-height: 1.5;
-    color: #333;
+    font-family: 'Menlo', 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #1f2937;
     max-height: 300px;
 }
 
 .api-key-display {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
     margin-top: 1rem;
 }
 
@@ -136,152 +135,106 @@
 
 .api-key-field input {
     width: 100%;
-    padding: 0.75rem 3rem 0.75rem 1rem;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-family: 'Courier New', monospace;
-    font-size: 0.9rem;
-    color: #333;
-    background-color: #f8f9fc;
+    padding: 0.8rem 3.5rem 0.8rem 1.25rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-family: 'Menlo', 'Courier New', monospace;
+    font-size: 0.95rem;
+    color: #1f2937;
+    background-color: #f9fafb;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.btn {
-    padding: 0.75rem 1.25rem;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-}
-
-.btn-secondary {
-    background-color: #f0f2ff;
-    color: #4a6cff;
-    border: 1px solid #d8deff;
-}
-
-.btn-secondary:hover {
-    background-color: #e8ecff;
+.api-key-field input:focus {
+    outline: none;
+    border-color: #4a6cff;
+    box-shadow: 0 0 0 2px rgba(74, 108, 255, 0.2);
 }
 
 .btn-icon {
     padding: 0.75rem;
     position: absolute;
-    right: 0.25rem;
+    right: 0.5rem;
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
-    color: #777;
+    color: #6b7280;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    font-size: 1.25rem;
 }
 
 .btn-icon:hover {
-    color: #333;
+    color: #4a6cff;
 }
 
 .btn.copied {
-    background-color: #e8f5e9;
-    color: #2e7d32;
-    border-color: #c8e6c9;
+    background-color: #dcfce7 !important;
+    color: #166534 !important;
+    border-color: #bbf7d0 !important;
 }
 
-/* Copy button styling */
+.btn.copied i {
+    color: #166534 !important;
+}
+
 #copy-config {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    padding: 0.5rem;
-    background-color: rgba(255, 255, 255, 0.9);
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    font-size: 0.8rem;
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.6rem 0.8rem;
+    background-color: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #4a6cff;
+    line-height: 1;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
-/* Quick links section */
+#copy-config:hover {
+    background-color: #f3f4f6;
+    border-color: #adb5bd;
+}
+
 .quick-links {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
+    gap: 1.5rem;
 }
 
 .quick-link-card {
-    background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-    padding: 1.5rem;
     text-decoration: none;
-    color: inherit;
+    color: #374151;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
     flex-direction: column;
 }
 
 .quick-link-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
 .quick-link-card i {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     color: #4a6cff;
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .quick-link-card h3 {
     margin: 0 0 0.5rem 0;
-    font-size: 1.1rem;
-    color: #333;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #1f2937;
 }
 
 .quick-link-card p {
     margin: 0;
-    color: #666;
+    color: #6b7280;
     font-size: 0.9rem;
-    line-height: 1.4;
-}
-
-/* Icons */
-[class^="icon-"] {
-    display: inline-block;
-    width: 1em;
-    height: 1em;
-}
-
-.icon-copy:before {
-    content: "📋";
-}
-
-.icon-eye:before {
-    content: "👁️";
-}
-
-.icon-eye-off:before {
-    content: "🔒";
-}
-
-.icon-check:before {
-    content: "✓";
-}
-
-.icon-connect:before {
-    content: "🔗";
-}
-
-.icon-tree:before {
-    content: "🌳";
-}
-
-.icon-settings:before {
-    content: "⚙️";
-}
-
-.icon-user:before {
-    content: "👤";
+    line-height: 1.5;
 }
 
 /* Responsive styles */

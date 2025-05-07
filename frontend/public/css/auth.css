@@ -5,7 +5,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #f5f7fa;
+    background-color: #f9fafb;
     padding: 20px;
 }
 
@@ -16,15 +16,15 @@
 
 .auth-card {
     background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.07);
     overflow: hidden;
 }
 
 .auth-header {
-    padding: 30px;
+    padding: 32px;
     text-align: center;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .auth-header .logo {
@@ -50,30 +50,32 @@
 
 .auth-header h1 {
     margin: 0;
-    font-size: 22px;
-    color: #333;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1f2937;
 }
 
 .auth-header h2 {
-    margin: 0 0 10px 0;
-    font-size: 24px;
-    color: #333;
+    margin: 0 0 8px 0;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #1f2937;
 }
 
 .auth-header p {
     margin: 0;
-    color: #666;
-    font-size: 15px;
+    color: #6b7280;
+    font-size: 0.95rem;
 }
 
 .auth-body {
-    padding: 30px;
+    padding: 32px;
 }
 
 .auth-message {
-    padding: 10px 15px;
-    margin-bottom: 20px;
-    border-radius: 6px;
+    padding: 12px 18px;
+    margin-bottom: 24px;
+    border-radius: 8px;
     font-size: 14px;
     display: none;
 }
@@ -105,7 +107,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .social-btn {
@@ -113,32 +115,32 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    padding: 12px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid #ddd;
+    transition: all 0.2s ease;
+    border: 1px solid #e5e7eb;
     background-color: #fff;
-    color: #333;
+    color: #374151;
 }
 
-.social-btn img {
-    width: 20px;
-    height: 20px;
+.social-btn i {
+    font-size: 1.25rem;
 }
 
 .social-btn:hover {
-    background-color: #f5f7fa;
+    background-color: #f9fafb;
+    border-color: #d1d5db;
 }
 
 .google-btn {
-    border-color: #dadce0;
+    /* border-color: #dadce0; Keep specific border or remove if default is fine */
 }
 
 .google-btn:hover {
-    background-color: #f8f9fa;
+    /* background-color: #f8f9fa; */
 }
 
 .github-btn {
@@ -148,7 +150,7 @@
 }
 
 .github-btn:hover {
-    background-color: #2f363d;
+    background-color: #374151;
 }
 
 .twitter-btn {
@@ -162,29 +164,31 @@
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .form-group label {
     display: block;
     margin-bottom: 8px;
     font-weight: 500;
-    color: #444;
-    font-size: 14px;
+    color: #374151;
+    font-size: 0.9rem;
 }
 
 .form-group input {
     width: 100%;
-    padding: 12px 15px;
-    font-size: 15px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    transition: border-color 0.2s ease;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background-color: #f9fafb;
 }
 
 .form-group input:focus {
     border-color: #4a6cff;
     outline: none;
+    box-shadow: 0 0 0 2px rgba(74, 108, 255, 0.2);
 }
 
 .forgot-password {
@@ -218,6 +222,11 @@
 .btn-primary {
     background-color: #4a6cff;
     color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
 }
 
 .btn-primary:hover {
@@ -225,18 +234,23 @@
 }
 
 .btn-secondary {
-    background-color: #f0f2ff;
-    color: #4a6cff;
-    border: 1px solid #d8deff;
+    background-color: #f3f4f6;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
 }
 
 .btn-secondary:hover {
-    background-color: #e8ecff;
+    background-color: #e5e7eb;
+    border-color: #d1d5db;
 }
 
 .auth-divider {
     text-align: center;
-    margin: 20px 0;
+    margin: 24px 0;
     position: relative;
 }
 
@@ -247,7 +261,7 @@
     left: 0;
     right: 0;
     height: 1px;
-    background-color: #eee;
+    background-color: #e5e7eb;
     z-index: 1;
 }
 
@@ -257,15 +271,15 @@
     background-color: #fff;
     position: relative;
     z-index: 2;
-    color: #777;
-    font-size: 14px;
+    color: #6b7280;
+    font-size: 0.875rem;
 }
 
 .auth-footer {
-    margin-top: 25px;
+    margin-top: 30px;
     text-align: center;
-    color: #666;
-    font-size: 14px;
+    color: #6b7280;
+    font-size: 0.9rem;
 }
 
 .auth-footer a {

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - JEAN Memory</title>
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="js/auth.js"></script>
 </head>
@@ -17,15 +18,15 @@
                 <h1>JEAN Memory</h1>
             </div>
             <ul class="nav-links">
-                <li class="active"><a href="dashboard.html"><i class="icon-home"></i>Dashboard</a></li>
-                <li><a href="chat.html"><i class="icon-chat"></i>Chat</a></li>
-                <li><a href="notes.html"><i class="icon-notes"></i>Notes</a></li>
-                <li><a href="knowledge-tree.html"><i class="icon-tree"></i>Knowledge Graph</a></li>
-                <li><a href="integrations.html"><i class="icon-connect"></i>Integrations</a></li>
-                <li><a href="profile.html"><i class="icon-user"></i>Profile</a></li>
+                <li class="active"><a href="dashboard.html"><i class="ti ti-home"></i>Dashboard</a></li>
+                <li><a href="chat.html"><i class="ti ti-messages"></i>Chat</a></li>
+                <li><a href="notes.html"><i class="ti ti-notebook"></i>Notes</a></li>
+                <li><a href="knowledge-tree.html"><i class="ti ti-sitemap"></i>Knowledge Graph</a></li>
+                <li><a href="integrations.html"><i class="ti ti-plug-connected"></i>Integrations</a></li>
+                <li><a href="profile.html"><i class="ti ti-user-circle"></i>Profile</a></li>
             </ul>
             <div class="sidebar-footer">
-                <a href="settings.html"><i class="icon-settings"></i>Settings</a>
+                <a href="settings.html"><i class="ti ti-settings"></i>Settings</a>
             </div>
         </nav>
 
@@ -74,15 +75,15 @@
                         <div class="card-content">
                             <div class="action-buttons">
                                 <a href="chat.html" class="action-button">
-                                    <i class="icon-chat"></i>
+                                    <i class="ti ti-messages"></i>
                                     <span>Start a Chat</span>
                                 </a>
                                 <a href="integrations.html" class="action-button">
-                                    <i class="icon-connect"></i>
+                                    <i class="ti ti-plug-connected"></i>
                                     <span>Connect Source</span>
                                 </a>
                                 <a href="profile.html" class="action-button">
-                                    <i class="icon-key"></i>
+                                    <i class="ti ti-key"></i>
                                     <span>View API Key</span>
                                 </a>
                             </div>
@@ -90,28 +91,28 @@
                     </div>
                     
                     <!-- Recent Activity Card -->
-                    <div class="dashboard-card activity-card">
+                    <div class="dashboard-card activity-card card">
                         <div class="card-header">
                             <h3>Recent Activity</h3>
                         </div>
                         <div class="card-content">
                             <div class="activity-list">
                                 <div class="activity-item">
-                                    <div class="activity-icon sync-icon"></div>
+                                    <div class="activity-icon"><i class="ti ti-refresh"></i></div>
                                     <div class="activity-details">
                                         <div class="activity-title">GitHub Sync Completed</div>
                                         <div class="activity-time">2 hours ago</div>
                                     </div>
                                 </div>
                                 <div class="activity-item">
-                                    <div class="activity-icon note-icon"></div>
+                                    <div class="activity-icon"><i class="ti ti-file-text"></i></div>
                                     <div class="activity-details">
                                         <div class="activity-title">5 Notes Added from Obsidian</div>
                                         <div class="activity-time">Yesterday</div>
                                     </div>
                                 </div>
                                 <div class="activity-item">
-                                    <div class="activity-icon chat-icon"></div>
+                                    <div class="activity-icon"><i class="ti ti-message-circle"></i></div>
                                     <div class="activity-details">
                                         <div class="activity-title">Chat Session with Gemini</div>
                                         <div class="activity-time">2 days ago</div>
@@ -122,7 +123,7 @@
                     </div>
                     
                     <!-- Get Started Card -->
-                    <div class="dashboard-card started-card">
+                    <div class="dashboard-card started-card card">
                         <div class="card-header">
                             <h3>Get Started</h3>
                         </div>
@@ -168,251 +169,264 @@
             const userData = AuthManager.getUserData();
             if (userData) {
                 // Personalize welcome message if needed
+                const welcomeSectionH2 = document.querySelector('.welcome-section h2');
+                if (welcomeSectionH2) {
+                    // Update h2 with a more direct welcome
+                    welcomeSectionH2.textContent = `Welcome, ${userData.name}!`;
+                }
                 const welcomeMessage = document.querySelector('.welcome-message');
                 if (welcomeMessage) {
-                    welcomeMessage.textContent = `Welcome back, ${userData.name}! Your personal AI context is ready to enhance your assistants.`;
+                    // Update p with the original detailed message
+                    welcomeMessage.textContent = 'Your personal AI context is ready to enhance your AI assistants.';
                 }
             }
         });
     </script>
     
     <style>
+        /* Dashboard Specific Styles */
         .dashboard-container {
-            padding: 1rem 0;
+            padding: 1rem 0; /* Keep some specific padding if needed, or remove if main.css is enough */
         }
         
         .welcome-section {
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
+            padding: 1.5rem;
+            background-color: #eef2ff; /* A light, welcoming background */
+            border-radius: 12px;
         }
         
         .welcome-section h2 {
             margin-bottom: 0.5rem;
-            font-size: 1.5rem;
+            font-size: 1.75rem; /* Larger welcome heading */
+            font-weight: 600;
+            color: #312e81; /* Dark indigo for contrast */
         }
         
         .welcome-message {
-            color: #666;
+            color: #4338ca; /* Indigo text */
             font-size: 1rem;
+            max-width: 700px;
         }
         
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); /* Slightly larger min card width */
+            gap: 1.5rem; /* Consistent gap */
         }
         
+        /* Use global .card styles and add variants or specific overrides if needed */
         .dashboard-card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-            overflow: hidden;
+            /* Inherits from .card in main.css: background, border-radius, box-shadow, padding */
+            /* Add any specific dashboard card variations here if main.css .card is not enough */
+            overflow: hidden; /* Keep this for content clipping within cards */
         }
         
-        .card-header {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #eee;
+        .dashboard-card .card-header {
+            padding: 1.25rem 1.5rem; /* Adjusted padding */
+            border-bottom: 1px solid #e5e7eb; /* Consistent border color */
         }
         
-        .card-header h3 {
+        .dashboard-card .card-header h3 {
             margin: 0;
-            font-size: 1.1rem;
-            color: #333;
+            font-size: 1.15rem; /* Slightly larger card titles */
+            font-weight: 600;
+            color: #1f2937; /* Consistent heading color */
         }
         
-        .card-content {
+        .dashboard-card .card-content {
             padding: 1.5rem;
         }
         
         /* Stats Card */
-        .stat-item {
+        .stats-card .stat-item {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 1rem;
+            align-items: center;
+            padding: 0.75rem 0; /* Add padding for better spacing */
+            border-bottom: 1px solid #f3f4f6; /* Subtle separator */
         }
         
-        .stat-item:last-child {
+        .stats-card .stat-item:last-child {
             margin-bottom: 0;
+            border-bottom: none;
         }
         
-        .stat-label {
-            color: #666;
+        .stats-card .stat-label {
+            color: #6b7280; /* Softer label color */
+            font-size: 0.9rem;
         }
         
-        .stat-value {
+        .stats-card .stat-value {
             font-weight: 600;
-            color: #333;
+            font-size: 1.1rem;
+            color: #374151;
         }
         
         /* Actions Card */
-        .action-buttons {
+        .actions-card .action-buttons {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); /* Responsive columns */
             gap: 1rem;
         }
         
-        .action-button {
+        .actions-card .action-button {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 1rem;
-            background: #f8f9fc;
-            border-radius: 8px;
+            padding: 1.25rem 1rem; /* Increased padding */
+            background-color: #f9fafb; /* Light background */
+            border-radius: 10px; /* Slightly more rounded */
             text-decoration: none;
-            color: #333;
-            transition: all 0.2s;
+            color: #374151;
+            transition: all 0.2s ease;
+            border: 1px solid #e5e7eb;
         }
         
-        .action-button:hover {
-            background: #f0f2ff;
-            transform: translateY(-2px);
-        }
-        
-        .action-button i {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
+        .actions-card .action-button:hover {
+            background-color: #f3f4f6;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
             color: #4a6cff;
         }
         
-        .action-button span {
+        .actions-card .action-button i {
+            font-size: 1.75rem; /* Larger icons */
+            margin-bottom: 0.75rem;
+            color: #4a6cff; /* Use primary color for icons */
+            transition: color 0.2s ease;
+        }
+        /* Note: The emoji icons (icon-chat etc.) will need to be replaced with SVGs or an icon font for these styles to be fully effective */
+        
+        .actions-card .action-button span {
             font-size: 0.9rem;
+            font-weight: 500;
         }
         
         /* Activity Card */
-        .activity-list {
+        .activity-card .activity-list {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.25rem; /* Increased gap */
         }
         
-        .activity-item {
+        .activity-card .activity-item {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
         
-        .activity-icon {
-            width: 36px;
-            height: 36px;
+        .activity-card .activity-icon {
+            width: 40px; /* Larger icon container */
+            height: 40px;
             border-radius: 50%;
-            background-color: #f0f2ff;
+            background-color: #eef2ff; /* Light primary background */
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            font-size: 1.25rem; /* For emoji content if still used, or icon font */
+            color: #4a6cff;
         }
+        /* Example: For a sync icon (replace emoji in HTML or use SVG/icon font) */
+        /* .activity-card .sync-icon::before { content: "\f021"; font-family: "FontAwesome"; } */
         
-        .sync-icon::before {
-            content: "🔄";
-        }
-        
-        .note-icon::before {
-            content: "📝";
-        }
-        
-        .chat-icon::before {
-            content: "💬";
-        }
-        
-        .activity-details {
+        .activity-card .activity-details {
             flex: 1;
         }
         
-        .activity-title {
+        .activity-card .activity-title {
             font-weight: 500;
-            color: #333;
-            margin-bottom: 0.25rem;
+            color: #374151;
+            margin-bottom: 0.15rem;
         }
         
-        .activity-time {
-            font-size: 0.8rem;
-            color: #888;
+        .activity-card .activity-time {
+            font-size: 0.85rem;
+            color: #6b7280;
         }
         
         /* Get Started Card */
-        .steps-list {
+        .started-card .steps-list {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.25rem;
         }
         
-        .step-item {
+        .started-card .step-item {
             display: flex;
             gap: 1rem;
+            align-items: flex-start; /* Align items to the start */
         }
         
-        .step-number {
-            width: 28px;
-            height: 28px;
+        .started-card .step-number {
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
-            background-color: #eee;
-            color: #666;
+            background-color: #e5e7eb;
+            color: #6b7280;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 1rem;
             flex-shrink: 0;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
         
-        .step-item.completed .step-number {
+        .started-card .step-item.completed .step-number {
             background-color: #4a6cff;
             color: white;
         }
         
-        .step-details {
+        .started-card .step-item.completed .step-title {
+            color: #4a6cff;
+        }        
+
+        .started-card .step-details {
             flex: 1;
         }
         
-        .step-title {
-            font-weight: 500;
-            color: #333;
+        .started-card .step-title {
+            font-weight: 600; /* Bolder step title */
+            color: #374151;
             margin-bottom: 0.25rem;
+            font-size: 1.05rem;
         }
         
-        .step-description {
+        .started-card .step-description {
             font-size: 0.9rem;
-            color: #666;
+            color: #6b7280;
+            line-height: 1.5;
         }
         
-        /* Icons */
-        .icon-home::before {
-            content: "🏠";
-        }
-        
-        .icon-chat::before {
-            content: "💬";
-        }
-        
-        .icon-notes::before {
-            content: "📝";
-        }
-        
-        .icon-tree::before {
-            content: "🌳";
-        }
-        
-        .icon-connect::before {
-            content: "🔗";
-        }
-        
-        .icon-user::before {
-            content: "👤";
-        }
-        
-        .icon-settings::before {
-            content: "⚙️";
-        }
-        
-        .icon-key::before {
-            content: "🔑";
-        }
+        /* Remove local emoji icon definitions - these should be handled globally or replaced */
+        /* 
+        .icon-home::before { content: "🏠"; }
+        .icon-chat::before { content: "💬"; }
+        .icon-notes::before { content: "📝"; }
+        .icon-tree::before { content: "🌳"; }
+        .icon-connect::before { content: "🔗"; }
+        .icon-user::before { content: "👤"; }
+        .icon-settings::before { content: "⚙️"; }
+        .icon-key::before { content: "🔑"; }
+        .sync-icon::before { content: "🔄"; }
+        .note-icon::before { content: "📝"; }
+        .chat-icon::before { content: "💬"; }
+        */
         
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
+            }
+            .welcome-section h2 {
+                font-size: 1.5rem;
+            }
+            .welcome-message {
+                font-size: 0.95rem;
             }
         }
     </style>

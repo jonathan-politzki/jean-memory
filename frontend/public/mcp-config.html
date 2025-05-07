@@ -4,180 +4,235 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JEAN Memory - MCP Configuration</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/styles.css">
+    <title>MCP Configuration - JEAN Memory</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+    <script src="js/notifications.js"></script>
+    <script src="js/auth.js"></script>
     <style>
-        pre {
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            padding: 15px;
-            overflow: auto;
-            max-height: 400px;
+        .mcp-container {
+            padding: 1.5rem;
         }
 
-        .config-card {
-            margin-bottom: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        .page-lead {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #6b7280;
+            margin-bottom: 2rem;
+        }
+
+        pre {
+            background-color: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 1.25rem;
+            overflow-x: auto;
+            max-height: 400px;
+            font-family: 'Menlo', 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #1f2937;
+            position: relative;
+        }
+
+        .config-card-header {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: #1f2937;
         }
 
         .copy-btn {
             position: absolute;
-            right: 15px;
-            top: 15px;
+            right: 1rem;
+            top: 1rem;
         }
 
-        #loading {
+        #loading-mcp {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin-top: 50px;
+            padding: 3rem 0;
+            text-align: center;
         }
 
-        .spinner-border {
+        .spinner {
             width: 3rem;
             height: 3rem;
+            border: 4px solid rgba(var(--primary-color-rgb, 74, 108, 255), 0.2);
+            border-top-color: rgb(var(--primary-color-rgb, 74, 108, 255));
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
         }
 
-        #error-message {
-            color: #dc3545;
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-            border-radius: 5px;
-            padding: 15px;
-            margin-top: 20px;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #error-message-mcp {
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            background-color: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+            border-radius: 12px;
+        }
+        #error-message-mcp h4 {
+            color: #991b1b;
+            margin-bottom: 0.5rem;
         }
 
         .mcp-instruction {
-            padding: 20px;
-            border-left: 4px solid #6c757d;
-            background-color: #f8f9fa;
-            margin-bottom: 20px;
+            padding: 1.5rem;
+            border-left: 4px solid #4a6cff;
+            background-color: #eef2ff;
+            margin-bottom: 1.5rem;
+            border-radius: 8px;
         }
 
+        .mcp-instruction h5 {
+            font-weight: 600;
+            color: #312e81;
+            margin-bottom: 0.5rem;
+        }
+        .mcp-instruction p {
+            color: #4338ca;
+            margin-bottom: 0;
+            line-height: 1.6;
+        }
         .instruction-step {
-            margin-bottom: 15px;
+            margin-bottom: 1rem;
+        }
+        .instruction-step:last-child {
+            margin-bottom: 0;
+        }
+
+        .user-info-alert {
+            background-color: #eef2ff;
+            color: #312e81;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #c7d2fe;
+        }
+        .user-info-alert p strong {
+            color: #3730a3;
         }
     </style>
 </head>
 
 <body>
-    <div class="container mt-5">
-        <div class="row">
-            <div class="col-12">
-                <h1 class="text-center mb-4">JEAN Memory MCP Configuration</h1>
-                <p class="text-center lead">
+    <div class="app-container">
+        <nav class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">J</div>
+                <h1>JEAN Memory</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="dashboard.html"><i class="ti ti-home"></i>Dashboard</a></li>
+                <li><a href="chat.html"><i class="ti ti-messages"></i>Chat</a></li>
+                <li><a href="notes.html"><i class="ti ti-notebook"></i>Notes</a></li>
+                <li><a href="knowledge-tree.html"><i class="ti ti-sitemap"></i>Knowledge Graph</a></li>
+                <li><a href="integrations.html"><i class="ti ti-plug-connected"></i>Integrations</a></li>
+                <li><a href="profile.html"><i class="ti ti-user-circle"></i>Profile</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <a href="settings.html"><i class="ti ti-settings"></i>Settings</a>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <header class="content-header">
+                <h1>MCP Configuration</h1>
+                <div id="user-display" class="user-display">
+                </div>
+            </header>
+
+            <div class="mcp-container">
+                <p class="page-lead">
                     Use the configurations below to connect JEAN Memory to your AI tools.
                 </p>
-            </div>
-        </div>
 
-        <!-- Loading spinner -->
-        <div id="loading">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-3">Loading your MCP configuration...</p>
-        </div>
+                <div id="loading-mcp">
+                    <div class="spinner"></div>
+                    <p>Loading your MCP configuration...</p>
+                </div>
 
-        <!-- Error message -->
-        <div id="error-message" class="d-none">
-            <h4>Error Loading Configuration</h4>
-            <p id="error-text">Unable to load your MCP configuration. Please try again later.</p>
-        </div>
+                <div id="error-message-mcp" class="d-none">
+                    <h4>Error Loading Configuration</h4>
+                    <p id="error-text">Unable to load your MCP configuration. Please try again later.</p>
+                </div>
 
-        <!-- Content will be shown after loading -->
-        <div id="content" class="d-none">
-            <div class="row">
-                <div class="col-12 mb-4">
-                    <div class="alert alert-info">
+                <div id="content-mcp" class="d-none">
+                    <div class="card user-info-alert mb-4">
                         <h4>Your User Information</h4>
                         <p class="mb-1"><strong>User ID:</strong> <span id="user-id">-</span></p>
                         <p class="mb-1"><strong>Email:</strong> <span id="user-email">-</span></p>
-                        <p class="mb-0"><strong>API Key:</strong> <span id="api-key">-</span></p>
+                        <p class="mb-0"><strong>API Key:</strong> <span id="api-key" style="font-family: 'Menlo', 'Courier New', monospace;">-</span></p>
                     </div>
-                </div>
-            </div>
 
-            <div class="row mb-4">
-                <div class="col-12">
-                    <h2>Claude Desktop Configuration</h2>
-                    <p>To use JEAN Memory with Claude Desktop, follow these steps:</p>
-                    
-                    <div class="mcp-instruction">
-                        <div class="instruction-step">
-                            <h5>1. Copy the configuration</h5>
-                            <p>Copy the JSON configuration below.</p>
-                        </div>
-                        
-                        <div class="instruction-step">
-                            <h5>2. Save to your Claude Desktop configuration</h5>
-                            <p>Open the Claude Desktop app and go to Settings > MCP Servers. Click "Add Server" and paste the configuration.</p>
-                        </div>
-                        
-                        <div class="instruction-step">
-                            <h5>3. Start the JEAN Memory server</h5>
-                            <p>Make sure the JEAN Memory backend is running before connecting.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="card config-card position-relative">
+                    <div class="card mb-4">
                         <div class="card-header">
-                            <h5 class="card-title mb-0">Claude Desktop Configuration</h5>
+                            <h3 class="card-title">Claude Desktop Configuration</h3>
                         </div>
                         <div class="card-body">
-                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('claude-config')">
-                                Copy
-                            </button>
-                            <pre id="claude-config">Loading...</pre>
+                            <p>To use JEAN Memory with Claude Desktop, follow these steps:</p>
+                            <div class="mcp-instruction">
+                                <div class="instruction-step">
+                                    <h5>1. Copy the configuration</h5>
+                                    <p>Copy the JSON configuration below.</p>
+                                </div>
+                                <div class="instruction-step">
+                                    <h5>2. Save to your Claude Desktop configuration</h5>
+                                    <p>Open the Claude Desktop app and go to Settings > MCP Servers. Click "Add Server" and paste the configuration.</p>
+                                </div>
+                                <div class="instruction-step">
+                                    <h5>3. Start the JEAN Memory server</h5>
+                                    <p>Make sure the JEAN Memory backend is running before connecting.</p>
+                                </div>
+                            </div>
+                            <div style="position: relative;">
+                                <button class="btn btn-sm btn-secondary copy-btn" onclick="copyToClipboard('claude-config')">
+                                    <i class="ti ti-copy"></i> Copy
+                                </button>
+                                <pre id="claude-config">Loading...</pre>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="row mb-4">
-                <div class="col-12">
-                    <h2>IDE Extension Configuration</h2>
-                    <p>To use JEAN Memory with IDE extensions (like Cursor, VS Code, etc.), follow these steps:</p>
-                    
-                    <div class="mcp-instruction">
-                        <div class="instruction-step">
-                            <h5>1. Copy the configuration</h5>
-                            <p>Copy the JSON configuration below.</p>
-                        </div>
-                        
-                        <div class="instruction-step">
-                            <h5>2. Configure your IDE extension</h5>
-                            <p>Open your IDE's settings and locate the MCP configuration section. Paste the configuration there.</p>
-                        </div>
-                        
-                        <div class="instruction-step">
-                            <h5>3. Start the JEAN Memory server</h5>
-                            <p>Make sure the JEAN Memory backend is running before connecting.</p>
-                        </div>
-                    </div>
-                    
-                    <div class="card config-card position-relative">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">IDE Extension Configuration</h5>
+                    <div class="card mb-4">
+                         <div class="card-header">
+                            <h3 class="card-title">IDE Extension Configuration</h3>
                         </div>
                         <div class="card-body">
-                            <button class="btn btn-sm btn-outline-primary copy-btn" onclick="copyToClipboard('ide-config')">
-                                Copy
-                            </button>
-                            <pre id="ide-config">Loading...</pre>
+                            <p>To use JEAN Memory with IDE extensions (like Cursor, VS Code, etc.), follow these steps:</p>
+                             <div class="mcp-instruction">
+                                <div class="instruction-step">
+                                    <h5>1. Copy the configuration</h5>
+                                    <p>Copy the JSON configuration below.</p>
+                                </div>
+                                <div class="instruction-step">
+                                    <h5>2. Configure your IDE extension</h5>
+                                    <p>Open your IDE's settings and locate the MCP configuration section. Paste the configuration there.</p>
+                                </div>
+                                <div class="instruction-step">
+                                    <h5>3. Start the JEAN Memory server</h5>
+                                    <p>Make sure the JEAN Memory backend is running before connecting.</p>
+                                </div>
+                            </div>
+                            <div style="position: relative;">
+                                <button class="btn btn-sm btn-secondary copy-btn" onclick="copyToClipboard('ide-config')">
+                                    <i class="ti ti-copy"></i> Copy
+                                </button>
+                                <pre id="ide-config">Loading...</pre>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="row mb-5">
-                <div class="col-12">
-                    <div class="card config-card">
+                    <div class="card">
                         <div class="card-header">
-                            <h5 class="card-title mb-0">Next Steps</h5>
+                            <h3 class="card-title">Next Steps</h3>
                         </div>
                         <div class="card-body">
                             <ol>
@@ -189,46 +244,51 @@
                                 If you encounter any issues, check the server logs for details or contact support.
                             </p>
                             <div class="text-center mt-4">
-                                <a href="/" class="btn btn-primary">Return to Dashboard</a>
+                                <a href="dashboard.html" class="btn btn-primary"><i class="ti ti-arrow-left"></i> Return to Dashboard</a>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
 
     <script>
-        // Utility function to extract query parameters
         function getQueryParam(param) {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get(param);
         }
 
-        // Function to copy text to clipboard
         function copyToClipboard(elementId) {
             const text = document.getElementById(elementId).textContent;
             navigator.clipboard.writeText(text).then(() => {
                 const btn = document.querySelector(`button[onclick="copyToClipboard('${elementId}')"]`);
-                const originalText = btn.textContent;
-                btn.textContent = 'Copied!';
+                const originalTextContent = btn.innerHTML;
+                btn.innerHTML = '<i class="ti ti-check"></i> Copied!';
+                btn.disabled = true;
                 setTimeout(() => {
-                    btn.textContent = originalText;
+                    btn.innerHTML = originalTextContent;
+                    btn.disabled = false;
                 }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
             });
         }
 
-        // Function to fetch MCP configuration
         async function fetchMCPConfig() {
+            const loadingDiv = document.getElementById('loading-mcp');
+            const contentDiv = document.getElementById('content-mcp');
+            const errorDiv = document.getElementById('error-message-mcp');
+            const errorTextP = document.getElementById('error-text');
+            
             try {
                 const userId = getQueryParam('jean_user_id');
                 const apiKey = getQueryParam('jean_api_key');
                 
                 if (!userId || !apiKey) {
-                    throw new Error('Missing user ID or API key in URL parameters');
+                    throw new Error('Missing User ID or API Key in URL parameters. Please ensure you accessed this page via a valid link.');
                 }
                 
-                // Make API request to get MCP configuration
                 const response = await fetch('/mcp', {
                     method: 'POST',
                     headers: {
@@ -243,7 +303,7 @@
                             name: 'get_mcp_config',
                             arguments: {}
                         },
-                        id: 1
+                        id: Date.now()
                     })
                 });
                 
@@ -257,40 +317,38 @@
                     throw new Error(`API error: ${data.error.message || JSON.stringify(data.error)}`);
                 }
                 
-                if (!data.result || !data.result.result) {
-                    throw new Error('Invalid API response format');
+                const mcpData = data.result && data.result.result ? data.result.result : data.result;
+                
+                if (!mcpData) {
+                     throw new Error('Invalid API response format for MCP data.');
                 }
+
+                const claudeConfig = mcpData.mcpServers || mcpData.claude_desktop || mcpData; 
+                const ideConfig = mcpData.mcpServers || mcpData.ide || mcpData;
                 
-                const config = data.result.result;
+                document.getElementById('user-id').textContent = userId;
+                document.getElementById('user-email').textContent = mcpData.email || 'N/A (not provided by API)'; 
+                document.getElementById('api-key').textContent = apiKey;
                 
-                // Update UI with configuration data
-                document.getElementById('user-id').textContent = config.user_id || '-';
-                document.getElementById('user-email').textContent = config.email || '-';
-                document.getElementById('api-key').textContent = config.api_key || '-';
+                document.getElementById('claude-config').textContent = JSON.stringify(claudeConfig, null, 2);
+                document.getElementById('ide-config').textContent = JSON.stringify(ideConfig, null, 2);
                 
-                // Format JSON with indentation for better readability
-                document.getElementById('claude-config').textContent = 
-                    JSON.stringify(config.claude_desktop, null, 2);
-                document.getElementById('ide-config').textContent = 
-                    JSON.stringify(config.ide, null, 2);
-                
-                // Hide loading, show content
-                document.getElementById('loading').classList.add('d-none');
-                document.getElementById('content').classList.remove('d-none');
+                loadingDiv.classList.add('d-none');
+                contentDiv.classList.remove('d-none');
+                errorDiv.classList.add('d-none');
                 
             } catch (error) {
                 console.error('Error fetching MCP configuration:', error);
-                
-                // Show error message
-                document.getElementById('loading').classList.add('d-none');
-                document.getElementById('error-message').classList.remove('d-none');
-                document.getElementById('error-text').textContent = 
-                    error.message || 'An unknown error occurred while loading your configuration.';
+                loadingDiv.classList.add('d-none');
+                errorTextP.textContent = error.message || 'An unknown error occurred.';
+                errorDiv.classList.remove('d-none');
+                contentDiv.classList.add('d-none');
             }
         }
 
-        // Call the function when page loads
-        document.addEventListener('DOMContentLoaded', fetchMCPConfig);
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchMCPConfig();
+        });
     </script>
 </body>
 

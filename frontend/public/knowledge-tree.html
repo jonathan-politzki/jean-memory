@@ -3,97 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JEAN Memory - Knowledge Graph</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <title>Knowledge Graph - JEAN Memory</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/auth.js"></script>
     <style>
         body {
             margin: 0;
             padding: 0;
-            overflow: hidden;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+            font-family: 'Inter', sans-serif;
         }
         
-        .header-nav {
-            background-color: #1e1e1e;
-            padding: 12px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            z-index: 10;
-            color: #e2e8f0;
-        }
-        
-        .header-nav .logo {
-            display: flex;
-            align-items: center;
-            font-weight: bold;
-            font-size: 18px;
-            color: #e2e8f0;
-            text-decoration: none;
-        }
-        
-        .nav-links {
-            display: flex;
-            gap: 20px;
-        }
-        
-        .nav-links a {
-            color: #a0aec0;
-            text-decoration: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            transition: all 0.2s;
-            font-size: 14px;
-        }
-        
-        .nav-links a:hover {
-            background-color: #2d3748;
-            color: #e2e8f0;
-        }
-        
-        .nav-links a.active {
-            color: #90cdf4;
-            font-weight: 500;
-        }
-        
-        .knowledge-container {
+        .knowledge-container-wrapper {
             display: flex;
             flex: 1;
             overflow: hidden;
+            height: 100%;
         }
         
-        .sidebar {
-            width: 260px;
-            background-color: #252526;
-            border-right: 1px solid #333;
-            padding: 15px;
+        .knowledge-filters-sidebar {
+            width: 280px;
+            background-color: #f9fafb;
+            border-right: 1px solid #e5e7eb;
+            padding: 1.5rem;
             overflow-y: auto;
-            color: #e2e8f0;
+            color: #374151;
             flex-shrink: 0;
         }
         
-        .sidebar h2 {
-            font-size: 16px;
-            margin-bottom: 15px;
-            color: #e2e8f0;
+        .knowledge-filters-sidebar h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #1f2937;
         }
         
-        .main-content {
+        .knowledge-main-content {
             flex: 1;
             overflow: hidden;
             position: relative;
             background-color: #1e1e1e;
-        }
-        
-        .visualization-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-            overflow: auto;
         }
         
         .controls {
@@ -112,18 +63,25 @@
         
         .controls button {
             margin-bottom: 5px;
-            background-color: #4a5568;
-            color: #e2e8f0;
+            background-color: #4a6cff;
+            color: white;
             border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
+            padding: 8px 12px;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 0.9rem;
             transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .controls button i {
+            font-size: 1.1rem;
         }
         
         .controls button:hover {
-            background-color: #2b6cb0;
+            background-color: #3a5cee;
         }
         
         .node-details {
@@ -131,52 +89,55 @@
             bottom: 20px;
             left: 20px;
             background: #2d3748;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            max-width: 300px;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+            max-width: 320px;
             z-index: 10;
             display: none;
             color: #e2e8f0;
-            border-left: 3px solid #90cdf4;
+            border-left: 4px solid #4a6cff;
         }
         
         .node-details h3 {
             margin-top: 0;
-            margin-bottom: 10px;
+            margin-bottom: 0.75rem;
             color: #90cdf4;
-            font-size: 16px;
+            font-size: 1.1rem;
+            font-weight: 600;
         }
         
         .node-details p {
-            margin: 5px 0;
-            font-size: 13px;
-            line-height: 1.4;
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+            line-height: 1.5;
         }
         
         .node-details .content-preview {
             background-color: #1a202c;
-            padding: 8px;
-            border-radius: 4px;
-            margin-top: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-top: 0.75rem;
+            font-family: 'Menlo', 'Courier New', monospace;
+            font-size: 0.85rem;
             max-height: 150px;
             overflow-y: auto;
             white-space: pre-wrap;
         }
         
         .filter-section {
-            margin-bottom: 20px;
-            padding: 10px;
-            background-color: #2d3748;
-            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background-color: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
         }
         
         .filter-section h3 {
-            margin-bottom: 10px;
-            font-size: 14px;
-            color: #90cdf4;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #374151;
         }
         
         .toggle-button {
@@ -186,16 +147,16 @@
         }
         
         .toggle-label {
-            margin-left: 8px;
-            font-size: 13px;
-            color: #e2e8f0;
+            margin-left: 0.75rem;
+            font-size: 0.9rem;
+            color: #374151;
         }
         
         .toggle-switch {
             position: relative;
             display: inline-block;
-            width: 36px;
-            height: 18px;
+            width: 42px;
+            height: 22px;
         }
         
         .toggle-switch input {
@@ -211,29 +172,34 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #4a5568;
-            transition: .4s;
-            border-radius: 34px;
+            background-color: #cbd5e1;
+            transition: .3s ease all;
+            border-radius: 22px;
         }
         
         .toggle-slider:before {
             position: absolute;
             content: "";
-            height: 14px;
-            width: 14px;
+            height: 18px;
+            width: 18px;
             left: 2px;
             bottom: 2px;
-            background-color: #e2e8f0;
-            transition: .4s;
+            background-color: white;
+            transition: .3s ease all;
             border-radius: 50%;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
         
         input:checked + .toggle-slider {
-            background-color: #4299e1;
+            background-color: #4a6cff;
+        }
+        
+        input:focus + .toggle-slider {
+            box-shadow: 0 0 0 2px rgba(74, 108, 255, 0.2);
         }
         
         input:checked + .toggle-slider:before {
-            transform: translateX(18px);
+            transform: translateX(20px);
         }
         
         input:disabled + .toggle-slider {
@@ -244,17 +210,30 @@
         .date-range {
             display: flex;
             flex-direction: column;
-            gap: 8px;
-            margin-top: 8px;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .date-range label {
+            font-size: 0.9rem;
+            color: #374151;
+            margin-bottom: 0.25rem;
         }
         
         .date-input {
-            padding: 6px 8px;
-            border-radius: 4px;
-            border: 1px solid #4a5568;
-            font-size: 13px;
-            background-color: #1a202c;
-            color: #e2e8f0;
+            padding: 0.6rem 0.8rem;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            font-size: 0.9rem;
+            background-color: #ffffff;
+            color: #374151;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .date-input:focus {
+            outline: none;
+            border-color: #4a6cff;
+            box-shadow: 0 0 0 2px rgba(74, 108, 255, 0.2);
         }
         
         .loader {
@@ -267,7 +246,7 @@
         }
         
         .loader-spinner {
-            border: 4px solid #2d3748;
+            border: 4px solid rgba(226, 232, 240, 0.2);
             border-top: 4px solid #90cdf4;
             border-radius: 50%;
             width: 40px;
@@ -281,40 +260,59 @@
             100% { transform: rotate(360deg); }
         }
         
-        button.primary {
-            background-color: #4299e1;
+        button.primary,
+        button#apply-filters,
+        button#graphViewBtn.primary {
+            background-color: #4a6cff;
             color: white;
             border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 13px;
-            transition: background-color 0.2s;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+            width: 100%;
         }
         
-        button.primary:hover {
-            background-color: #3182ce;
+        button.primary:hover,
+        button#apply-filters:hover,
+        button#graphViewBtn.primary:hover {
+            background-color: #3a5cee;
         }
         
-        button.secondary {
-            background-color: #4a5568;
-            color: #e2e8f0;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 4px;
+        button.secondary,
+        button#reset-filters,
+        button#treeViewBtn.secondary {
+            background-color: #f3f4f6;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 13px;
-            transition: background-color 0.2s;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            width: 100%;
         }
         
-        button.secondary:hover {
-            background-color: #2d3748;
+        button.secondary:hover,
+        button#reset-filters:hover,
+        button#treeViewBtn.secondary:hover {
+            background-color: #e5e7eb;
+            border-color: #d1d5db;
+        }
+        
+        button#graphViewBtn,
+        button#treeViewBtn {
+            width: auto;
+            flex: 1;
         }
         
         .view-controls {
-            margin-bottom: 10px;
+            margin-bottom: 1.5rem;
             display: flex;
-            gap: 5px;
+            gap: 0.75rem;
         }
         
         .view-controls button {
@@ -334,153 +332,250 @@
         
         .node text {
             font-size: 11px;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            fill: #e0e0e0;
         }
     </style>
 </head>
 <body>
-    <header class="header-nav">
-        <a href="profile.html" class="logo">
-            <div class="logo-icon" style="width: 24px; height: 24px; font-size: 14px; margin-right: 10px;">J</div>
-            JEAN Memory
-        </a>
-        <nav class="nav-links">
-            <a href="profile.html">Dashboard</a>
-            <a href="knowledge-tree.html" class="active">Knowledge Graph</a>
-            <a href="mcp-config.html">MCP Config</a>
+    <div class="app-container">
+        <nav class="sidebar">
+            <div class="logo">
+                <div class="logo-icon">J</div>
+                <h1>JEAN Memory</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="dashboard.html"><i class="ti ti-home"></i>Dashboard</a></li>
+                <li><a href="chat.html"><i class="ti ti-messages"></i>Chat</a></li>
+                <li><a href="notes.html"><i class="ti ti-notebook"></i>Notes</a></li>
+                <li class="active"><a href="knowledge-tree.html"><i class="ti ti-sitemap"></i>Knowledge Graph</a></li>
+                <li><a href="integrations.html"><i class="ti ti-plug-connected"></i>Integrations</a></li>
+                <li><a href="profile.html"><i class="ti ti-user-circle"></i>Profile</a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <a href="settings.html"><i class="ti ti-settings"></i>Settings</a>
+            </div>
         </nav>
-    </header>
 
-    <div class="knowledge-container">
-        <aside class="sidebar">
-            <h2>Knowledge Filters</h2>
-            
-            <div class="view-controls">
-                <button id="graphViewBtn" class="primary">Graph View</button>
-                <button id="treeViewBtn" class="secondary">Tree View</button>
-            </div>
-            
-            <div class="filter-section">
-                <h3>Note Sources</h3>
-                
-                <div class="toggle-button">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="source-notes" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <span class="toggle-label">Quick Notes</span>
-                </div>
-                
-                <div class="toggle-button">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="source-github" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <span class="toggle-label">GitHub</span>
-                </div>
-                
-                <div class="toggle-button">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="source-obsidian" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <span class="toggle-label">Obsidian</span>
-                </div>
-                
-                <div class="toggle-button">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="source-twitter" disabled>
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <span class="toggle-label">Twitter/X</span>
-                </div>
-            </div>
-            
-            <div class="filter-section">
-                <h3>Note Types</h3>
-                
-                <div class="toggle-button">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="type-markdown" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <span class="toggle-label">Markdown</span>
-                </div>
-                
-                <div class="toggle-button">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="type-code" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <span class="toggle-label">Code Snippets</span>
-                </div>
-                
-                <div class="toggle-button">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="type-todos" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <span class="toggle-label">Todo Lists</span>
-                </div>
-            </div>
-            
-            <div class="filter-section">
-                <h3>Time Range</h3>
-                
-                <div class="date-range">
-                    <label for="start-date" style="font-size: 13px; margin-bottom: 4px;">From:</label>
-                    <input type="date" id="start-date" class="date-input">
+        <main class="main-content" style="padding: 0; display: flex; flex-direction: column;">
+            <header class="content-header" style="margin: 0 20px; padding: 20px 0; width: auto;">
+                 <h1>Knowledge Graph</h1>
+                 <div id="user-display" class="user-display">
+                     <!-- Will be populated by auth.js -->
+                 </div>
+            </header>
+
+            <div class="knowledge-container-wrapper">
+                <aside class="knowledge-filters-sidebar">
+                    <h2>Knowledge Filters</h2>
                     
-                    <label for="end-date" style="font-size: 13px; margin-bottom: 4px; margin-top: 8px;">To:</label>
-                    <input type="date" id="end-date" class="date-input">
-                </div>
-            </div>
-            
-            <button id="apply-filters" class="primary" style="width: 100%; margin-top: 20px;">Apply Filters</button>
-            <button id="reset-filters" class="secondary" style="width: 100%; margin-top: 10px;">Reset Filters</button>
-        </aside>
-        
-        <main class="main-content">
-            <div class="controls">
-                <button id="zoom-in">Zoom In +</button>
-                <button id="zoom-out">Zoom Out -</button>
-                <button id="reset-view">Reset View</button>
-                <button id="export-png" style="margin-top: 5px;">Export PNG</button>
-            </div>
-            
-            <div class="visualization-container">
-                <div id="loader" class="loader">
-                    <div class="loader-spinner"></div>
-                    <p>Building your knowledge graph...</p>
-                </div>
-                <svg id="graph-svg" width="100%" height="100%"></svg>
-            </div>
-            
-            <div class="node-details" id="node-details">
-                <h3 id="detail-title">Note Title</h3>
-                <p id="detail-source">From: Obsidian</p>
-                <p id="detail-date">Created: May 15, 2025</p>
-                <p id="detail-tags">Tags: <span id="detail-tags-list">research, notes</span></p>
-                <div class="content-preview" id="detail-content">Content preview goes here...</div>
+                    <div class="view-controls">
+                        <button id="graphViewBtn" class="primary"><i class="ti ti-graph"></i>Graph View</button>
+                        <button id="treeViewBtn" class="secondary"><i class="ti ti-binary-tree"></i>Tree View</button>
+                    </div>
+                    
+                    <div class="filter-section">
+                        <h3>Note Sources</h3>
+                        
+                        <div class="toggle-button">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="source-notes" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label">Quick Notes</span>
+                        </div>
+                        
+                        <div class="toggle-button">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="source-github" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label">GitHub</span>
+                        </div>
+                        
+                        <div class="toggle-button">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="source-obsidian" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label">Obsidian</span>
+                        </div>
+                        
+                        <div class="toggle-button">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="source-twitter" disabled>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label">Twitter/X</span>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-section">
+                        <h3>Note Types</h3>
+                        
+                        <div class="toggle-button">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="type-markdown" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label">Markdown</span>
+                        </div>
+                        
+                        <div class="toggle-button">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="type-code" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label">Code Snippets</span>
+                        </div>
+                        
+                        <div class="toggle-button">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="type-todos" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span class="toggle-label">Todo Lists</span>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-section">
+                        <h3>Time Range</h3>
+                        
+                        <div class="date-range">
+                            <label for="start-date" style="font-size: 13px; margin-bottom: 4px;">From:</label>
+                            <input type="date" id="start-date" class="date-input">
+                            
+                            <label for="end-date" style="font-size: 13px; margin-bottom: 4px; margin-top: 8px;">To:</label>
+                            <input type="date" id="end-date" class="date-input">
+                        </div>
+                    </div>
+                    
+                    <button id="apply-filters" class="primary" style="width: 100%; margin-top: 20px;">Apply Filters</button>
+                    <button id="reset-filters" class="secondary" style="width: 100%; margin-top: 10px;">Reset Filters</button>
+                </aside>
+                
+                <main class="knowledge-main-content">
+                    <div class="controls">
+                        <button id="zoom-in" title="Zoom In"><i class="ti ti-zoom-in"></i>Zoom In</button>
+                        <button id="zoom-out" title="Zoom Out"><i class="ti ti-zoom-out"></i>Zoom Out</button>
+                        <button id="reset-view" title="Reset View"><i class="ti ti-refresh-dot"></i>Reset</button>
+                        <button id="export-png" title="Export PNG" style="margin-top: 5px;"><i class="ti ti-download"></i>Export PNG</button>
+                    </div>
+                    
+                    <div class="visualization-container">
+                        <div id="loader" class="loader">
+                            <div class="loader-spinner"></div>
+                            <p>Building your knowledge graph...</p>
+                        </div>
+                        <svg id="graph-svg" width="100%" height="100%"></svg>
+                    </div>
+                    
+                    <div class="node-details" id="node-details">
+                        <h3 id="detail-title">Note Title</h3>
+                        <p id="detail-source">From: Obsidian</p>
+                        <p id="detail-date">Created: May 15, 2025</p>
+                        <p id="detail-tags">Tags: <span id="detail-tags-list">research, notes</span></p>
+                        <div class="content-preview" id="detail-content">Content preview goes here...</div>
+                    </div>
+                </main>
             </div>
         </main>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Set current date as the end date
+            if (!AuthManager.requireAuth()) {
+                return;
+            }
+
             const today = new Date();
             const endDateInput = document.getElementById('end-date');
             endDateInput.value = today.toISOString().split('T')[0];
             
-            // Set 3 months ago as the start date
             const threeMonthsAgo = new Date();
             threeMonthsAgo.setMonth(today.getMonth() - 3);
             const startDateInput = document.getElementById('start-date');
             startDateInput.value = threeMonthsAgo.toISOString().split('T')[0];
             
-            // View mode
-            let currentViewMode = 'graph'; // 'graph' or 'tree'
+            let currentViewMode = 'graph';
+            
+            let svg = d3.select("#graph-svg");
+            let g = svg.append("g");
+            
+            function getAndUpdateZoomExtent(zoomInstance) {
+                const currentWidth = svg.node().clientWidth;
+                const currentHeight = svg.node().clientHeight;
+                zoomInstance.extent([[0, 0], [currentWidth, currentHeight]]);
+                return { currentWidth, currentHeight }; 
+            }
+
+            let zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on("zoom", function(event) {
+                    g.attr("transform", event.transform);
+                });
+            
+            getAndUpdateZoomExtent(zoom);
+            svg.call(zoom);
+            
+            document.getElementById('zoom-in').addEventListener('click', function() {
+                svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+            });
+            
+            document.getElementById('zoom-out').addEventListener('click', function() {
+                svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+            });
+            
+            document.getElementById('reset-view').addEventListener('click', function() {
+                svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
+            });
+            
+            document.getElementById('export-png').addEventListener('click', function() {
+                const svgElement = document.getElementById('graph-svg');
+                
+                const canvas = document.createElement('canvas');
+                const svgRect = svgElement.getBoundingClientRect();
+                canvas.width = svgRect.width;
+                canvas.height = svgRect.height;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.fillStyle = '#1e1e1e';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                const data = new XMLSerializer().serializeToString(svgElement);
+                const svgBlob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+                
+                const img = new Image();
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0);
+                    URL.revokeObjectURL(url);
+                    
+                    const pngUrl = canvas.toDataURL('image/png');
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = pngUrl;
+                    downloadLink.download = 'knowledge-graph.png';
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                };
+                img.src = url;
+            });
+            
+            document.getElementById('apply-filters').addEventListener('click', function() {
+                loadData();
+            });
+            
+            document.getElementById('reset-filters').addEventListener('click', function() {
+                document.querySelectorAll('.toggle-switch input:not([disabled])').forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+                
+                document.getElementById('start-date').value = threeMonthsAgo.toISOString().split('T')[0];
+                document.getElementById('end-date').value = today.toISOString().split('T')[0];
+                
+                loadData();
+            });
             
             document.getElementById('graphViewBtn').addEventListener('click', function() {
                 currentViewMode = 'graph';
@@ -496,111 +591,33 @@
                 loadData();
             });
             
-            // Zoom controls
-            let svg = d3.select("#graph-svg");
-            let zoom = d3.zoom()
-                .scaleExtent([0.1, 10])
-                .on("zoom", function(event) {
-                    container.attr("transform", event.transform);
-                });
-            
-            svg.call(zoom);
-            
-            let container = svg.append("g");
-            
-            document.getElementById('zoom-in').addEventListener('click', function() {
-                svg.transition().duration(300).call(zoom.scaleBy, 1.3);
-            });
-            
-            document.getElementById('zoom-out').addEventListener('click', function() {
-                svg.transition().duration(300).call(zoom.scaleBy, 0.7);
-            });
-            
-            document.getElementById('reset-view').addEventListener('click', function() {
-                svg.transition().duration(300).call(zoom.transform, d3.zoomIdentity);
-            });
-            
-            document.getElementById('export-png').addEventListener('click', function() {
-                // Get the SVG element
-                const svgElement = document.getElementById('graph-svg');
-                
-                // Create a canvas element
-                const canvas = document.createElement('canvas');
-                const svgRect = svgElement.getBoundingClientRect();
-                canvas.width = svgRect.width;
-                canvas.height = svgRect.height;
-                const ctx = canvas.getContext('2d');
-                
-                // Set background color
-                ctx.fillStyle = '#1e1e1e';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // Convert SVG to data URL
-                const data = new XMLSerializer().serializeToString(svgElement);
-                const svgBlob = new Blob([data], { type: 'image/svg+xml;charset=utf-8' });
-                const url = URL.createObjectURL(svgBlob);
-                
-                // Create image from SVG and draw to canvas
-                const img = new Image();
-                img.onload = function() {
-                    ctx.drawImage(img, 0, 0);
-                    URL.revokeObjectURL(url);
-                    
-                    // Convert canvas to PNG and download
-                    const pngUrl = canvas.toDataURL('image/png');
-                    const downloadLink = document.createElement('a');
-                    downloadLink.href = pngUrl;
-                    downloadLink.download = 'knowledge-graph.png';
-                    document.body.appendChild(downloadLink);
-                    downloadLink.click();
-                    document.body.removeChild(downloadLink);
-                };
-                img.src = url;
-            });
-            
-            // Apply filter button
-            document.getElementById('apply-filters').addEventListener('click', function() {
-                loadData();
-            });
-            
-            // Reset filter button
-            document.getElementById('reset-filters').addEventListener('click', function() {
-                // Reset checkboxes to checked
-                document.querySelectorAll('.toggle-switch input:not([disabled])').forEach(checkbox => {
-                    checkbox.checked = true;
-                });
-                
-                // Reset date range
-                document.getElementById('start-date').value = threeMonthsAgo.toISOString().split('T')[0];
-                document.getElementById('end-date').value = today.toISOString().split('T')[0];
-                
-                // Reload data
-                loadData();
-            });
-            
-            // Initial data load
-            loadData();
-            
             function loadData() {
                 document.getElementById('loader').style.display = 'flex';
-                container.selectAll("*").remove();
+                g.selectAll("*").remove();
                 
-                // In a real implementation, this would fetch data from the backend
-                // based on the selected filters
                 setTimeout(() => {
+                    let { currentWidth, currentHeight } = getAndUpdateZoomExtent(zoom);
+
+                    // Safeguard against zero dimensions, fallback to a minimum
+                    if (currentWidth <= 0) {
+                        console.warn("SVG width was 0, falling back to default 300px for layout.");
+                        currentWidth = 300;
+                    }
+                    if (currentHeight <= 0) {
+                        console.warn("SVG height was 0, falling back to default 300px for layout.");
+                        currentHeight = 300;
+                    }
+
                     if (currentViewMode === 'graph') {
-                        createForceGraph(generateGraphData());
+                        createForceGraph(generateGraphData(), currentWidth, currentHeight);
                     } else {
-                        createTreeView(generateTreeData());
+                        createTreeView(generateTreeData(), currentWidth, currentHeight);
                     }
                     document.getElementById('loader').style.display = 'none';
                 }, 800);
             }
             
             function generateGraphData() {
-                // This would be replaced with actual data from the backend
-                // Simulating Obsidian-style notes and connections
-                
                 const nodes = [
                     { id: "node1", name: "Project Ideas", type: "note", source: "Obsidian", date: "2025-05-10", tags: ["ideas", "projects"], content: "# Project Ideas\n\n- Personal knowledge management system\n- Smart home automation hub\n- AI writing assistant integration\n- Cross-platform note synchronization" },
                     { id: "node2", name: "Meeting Notes - Team Sync", type: "note", source: "Obsidian", date: "2025-05-12", tags: ["meetings", "team"], content: "# Team Sync - May 12\n\n- Discussed roadmap for Q3\n- Assigned tasks for upcoming sprint\n- Reviewed customer feedback\n- Action items:\n  - Alex: Update documentation\n  - Sam: Fix priority bugs\n  - Jordan: Prepare demo for next call" },
@@ -763,19 +780,16 @@
                 return data;
             }
             
-            function createForceGraph(data) {
-                // Clear any existing content
-                container.selectAll("*").remove();
+            function createForceGraph(data, width, height) {
+                g.selectAll("*").remove();
                 
-                // Set up the simulation
                 const simulation = d3.forceSimulation(data.nodes)
                     .force("link", d3.forceLink(data.links).id(d => d.id).distance(100))
                     .force("charge", d3.forceManyBody().strength(-300))
-                    .force("center", d3.forceCenter(svg.node().clientWidth / 2, svg.node().clientHeight / 2))
+                    .force("center", d3.forceCenter(width / 2, height / 2))
                     .force("collision", d3.forceCollide().radius(50));
                 
-                // Create links
-                const link = container.append("g")
+                const link = g.append("g")
                     .attr("class", "links")
                     .selectAll("line")
                     .data(data.links)
@@ -784,8 +798,7 @@
                     .attr("stroke", "#4a5568")
                     .attr("stroke-width", d => Math.sqrt(d.value));
                 
-                // Create nodes
-                const node = container.append("g")
+                const node = g.append("g")
                     .attr("class", "nodes")
                     .selectAll(".node")
                     .data(data.nodes)
@@ -796,7 +809,6 @@
                         .on("drag", dragged)
                         .on("end", dragended));
                 
-                // Add circles to nodes
                 node.append("circle")
                     .attr("r", d => {
                         switch(d.source) {
@@ -817,7 +829,6 @@
                     .attr("stroke", "#e2e8f0")
                     .attr("stroke-width", 1);
                 
-                // Add node labels
                 node.append("text")
                     .attr("dx", 14)
                     .attr("dy", ".35em")
@@ -826,7 +837,6 @@
                     .style("font-size", "11px")
                     .style("pointer-events", "none");
                 
-                // Add icons inside nodes based on source
                 node.append("text")
                     .attr("text-anchor", "middle")
                     .attr("dy", ".35em")
@@ -842,11 +852,9 @@
                         }
                     });
                 
-                // Node click event for details
                 node.on("click", function(event, d) {
                     showNodeDetails(d);
                     
-                    // Highlight connected nodes
                     const connectedNodeIds = new Set();
                     data.links.forEach(link => {
                         if (link.source.id === d.id || link.target.id === d.id) {
@@ -855,20 +863,18 @@
                         }
                     });
                     
-                    node.selectAll("circle").attr("opacity", node => 
-                        connectedNodeIds.has(node.id) || node.id === d.id ? 1 : 0.3);
+                    node.selectAll("circle").attr("opacity", n => 
+                        connectedNodeIds.has(n.id) || n.id === d.id ? 1 : 0.3);
                     
-                    link.attr("opacity", link => 
-                        link.source.id === d.id || link.target.id === d.id ? 1 : 0.1);
+                    link.attr("opacity", l => 
+                        l.source.id === d.id || l.target.id === d.id ? 1 : 0.1);
                     
-                    // Reset after delay
                     setTimeout(() => {
                         node.selectAll("circle").attr("opacity", 1);
                         link.attr("opacity", 1);
                     }, 3000);
                 });
                 
-                // Update positions on simulation tick
                 simulation.on("tick", () => {
                     link
                         .attr("x1", d => d.source.x)
@@ -880,7 +886,17 @@
                         .attr("transform", d => `translate(${d.x},${d.y})`);
                 });
                 
-                // Drag functions
+                // After a few ticks, reset the zoom to center the graph
+                let ticks = 0;
+                const maxTicksForCentering = 50; // Number of ticks before attempting to center
+                simulation.on("tick.centering", () => {
+                    ticks++;
+                    if (ticks > maxTicksForCentering) {
+                        svg.call(zoom.transform, d3.zoomIdentity); 
+                        simulation.on("tick.centering", null); // Remove this listener after centering
+                    }
+                });
+                
                 function dragstarted(event, d) {
                     if (!event.active) simulation.alphaTarget(0.3).restart();
                     d.fx = d.x;
@@ -899,25 +915,21 @@
                 }
             }
             
-            function createTreeView(data) {
-                // Clear any existing content
-                container.selectAll("*").remove();
+            function createTreeView(data, width, height) {
+                g.selectAll("*").remove();
                 
-                // Set up tree layout
-                const width = svg.node().clientWidth;
-                const height = svg.node().clientHeight;
-                
+                // Ensure dimensions for tree.size are non-negative
+                const treeWidth = Math.max(0, width - 200);
+                const treeHeight = Math.max(0, height - 100);
+
                 const treeLayout = d3.tree()
-                    .size([height - 100, width - 200]);
+                    .size([treeHeight, treeWidth]);
                 
-                // Convert data to hierarchy
                 const root = d3.hierarchy(data);
                 
-                // Calculate node positions
                 const treeData = treeLayout(root);
                 
-                // Add links
-                container.selectAll(".link")
+                g.selectAll(".link")
                     .data(treeData.links())
                     .enter().append("path")
                     .attr("class", "link")
@@ -926,8 +938,7 @@
                         .x(d => d.y)
                         .y(d => d.x));
                 
-                // Add nodes
-                const node = container.selectAll(".node")
+                const node = g.selectAll(".node")
                     .data(treeData.descendants())
                     .enter().append("g")
                     .attr("class", d => "node" + (d.children ? " node--internal" : " node--leaf"))
@@ -938,7 +949,6 @@
                         }
                     });
                 
-                // Add node circles
                 node.append("circle")
                     .attr("r", d => {
                         if (d.data.type === "root") return 8;
@@ -959,7 +969,6 @@
                     .attr("stroke", "#e2e8f0")
                     .attr("stroke-width", 1);
                 
-                // Add folder icons
                 node.filter(d => d.data.type === "folder")
                     .append("text")
                     .attr("text-anchor", "middle")
@@ -969,7 +978,6 @@
                     .attr("opacity", 0.8)
                     .attr("x", -15);
                 
-                // Add node labels
                 node.append("text")
                     .attr("dy", "0.31em")
                     .attr("x", d => d.children ? -10 : 10)
@@ -979,16 +987,17 @@
                     .style("font-size", "11px")
                     .style("font-weight", d => 
                         d.data.type === "root" || d.data.type === "folder" ? "bold" : "normal");
+
+                // Center the tree view immediately as its layout is deterministic
+                svg.call(zoom.transform, d3.zoomIdentity);
             }
             
             function showNodeDetails(nodeData) {
                 const detailsPanel = document.getElementById('node-details');
                 
-                // Fill in the details
                 document.getElementById('detail-title').textContent = nodeData.name;
                 document.getElementById('detail-source').textContent = `From: ${nodeData.source || 'Unknown'}`;
                 
-                // Format date if available
                 if (nodeData.date) {
                     const date = new Date(nodeData.date);
                     document.getElementById('detail-date').textContent = `Created: ${date.toLocaleDateString()}`;
@@ -996,7 +1005,6 @@
                     document.getElementById('detail-date').textContent = 'Created: Unknown';
                 }
                 
-                // Set tags
                 if (nodeData.tags && nodeData.tags.length > 0) {
                     document.getElementById('detail-tags').style.display = 'block';
                     document.getElementById('detail-tags-list').textContent = nodeData.tags.join(', ');
@@ -1006,10 +1014,8 @@
                 
                 document.getElementById('detail-content').textContent = nodeData.content || 'No content available';
                 
-                // Show the details panel
                 detailsPanel.style.display = 'block';
                 
-                // Add event listener to close the panel when clicking elsewhere
                 setTimeout(() => {
                     const clickHandler = function(e) {
                         if (!detailsPanel.contains(e.target)) {

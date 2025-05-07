@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - JEAN Memory</title>
     <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
     <script src="js/notifications.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="js/auth.js"></script>
@@ -18,15 +19,15 @@
                 <h1>JEAN Memory</h1>
             </div>
             <ul class="nav-links">
-                <li><a href="dashboard.html"><i class="icon-home"></i>Dashboard</a></li>
-                <li><a href="chat.html"><i class="icon-chat"></i>Chat</a></li>
-                <li><a href="notes.html"><i class="icon-notes"></i>Notes</a></li>
-                <li><a href="knowledge-tree.html"><i class="icon-tree"></i>Knowledge Graph</a></li>
-                <li><a href="integrations.html"><i class="icon-connect"></i>Integrations</a></li>
-                <li><a href="profile.html"><i class="icon-user"></i>Profile</a></li>
+                <li><a href="dashboard.html"><i class="ti ti-home"></i>Dashboard</a></li>
+                <li><a href="chat.html"><i class="ti ti-messages"></i>Chat</a></li>
+                <li><a href="notes.html"><i class="ti ti-notebook"></i>Notes</a></li>
+                <li><a href="knowledge-tree.html"><i class="ti ti-sitemap"></i>Knowledge Graph</a></li>
+                <li><a href="integrations.html"><i class="ti ti-plug-connected"></i>Integrations</a></li>
+                <li><a href="profile.html"><i class="ti ti-user-circle"></i>Profile</a></li>
             </ul>
             <div class="sidebar-footer">
-                <a href="settings.html" class="active"><i class="icon-settings"></i>Settings</a>
+                <a href="settings.html" class="active"><i class="ti ti-settings"></i>Settings</a>
             </div>
         </nav>
 
@@ -167,29 +168,30 @@
     
     <style>
         .settings-container {
-            padding: 1rem 0;
+            padding: 2rem 0;
         }
         
         .settings-section {
-            margin-bottom: 2rem;
+            margin-bottom: 2.5rem;
         }
         
         .settings-section h2 {
-            margin-bottom: 1rem;
-            font-size: 1.25rem;
-            color: #333;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
         }
         
         .settings-card {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.07);
+            padding: 2rem;
+            margin-bottom: 2rem;
         }
         
         .settings-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
         }
         
         .settings-group:last-child {
@@ -197,46 +199,63 @@
         }
         
         .settings-group h3 {
-            font-size: 1.1rem;
-            margin-bottom: 1rem;
-            color: #333;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 0.5rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.75rem;
         }
         
         .setting-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 1.25rem;
+            padding: 0.5rem 0;
         }
         
         .setting-label {
             font-weight: 500;
-            color: #333;
+            color: #374151;
+            font-size: 1rem;
         }
         
         .setting-description {
-            margin-top: -0.5rem;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-            color: #666;
+            margin-top: 0.25rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+            line-height: 1.5;
         }
         
         .setting-control select {
-            padding: 0.5rem;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            background-color: #f8f9fc;
-            min-width: 150px;
+            padding: 0.6rem 0.8rem;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            background-color: #f9fafb;
+            min-width: 180px;
+            font-size: 0.95rem;
+            color: #374151;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.7rem center;
+            background-size: 1.25em;
+        }
+
+        .setting-control select:focus {
+            outline: none;
+            border-color: #4a6cff;
+            box-shadow: 0 0 0 2px rgba(74, 108, 255, 0.2);
         }
         
         /* Toggle Switch */
         .toggle-switch {
             position: relative;
             display: inline-block;
-            width: 46px;
-            height: 24px;
+            width: 50px;
+            height: 28px;
         }
         
         .toggle-switch input {
@@ -252,74 +271,101 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #ccc;
-            transition: .3s;
-            border-radius: 24px;
+            background-color: #e5e7eb;
+            transition: .3s ease all;
+            border-radius: 28px;
         }
         
         .toggle-slider:before {
             position: absolute;
             content: "";
-            height: 18px;
-            width: 18px;
+            height: 22px;
+            width: 22px;
             left: 3px;
             bottom: 3px;
             background-color: white;
-            transition: .3s;
+            transition: .3s ease all;
             border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         
         input:checked + .toggle-slider {
             background-color: #4a6cff;
         }
         
+        input:focus + .toggle-slider {
+            box-shadow: 0 0 0 2px rgba(74, 108, 255, 0.2);
+        }
+
         input:checked + .toggle-slider:before {
             transform: translateX(22px);
         }
         
         /* Buttons */
         .btn {
-            padding: 0.75rem 1.25rem;
+            padding: 0.8rem 1.5rem;
             border: none;
-            border-radius: 6px;
-            font-size: 0.9rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s ease;
             display: inline-block;
-            margin-right: 0.5rem;
-            margin-bottom: 0.5rem;
+            margin-right: 0.75rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.2;
         }
         
         .btn-secondary {
-            background-color: #f0f2ff;
-            color: #4a6cff;
-            border: 1px solid #d8deff;
+            background-color: #f3f4f6;
+            color: #374151;
+            border: 1px solid #e5e7eb;
         }
         
         .btn-secondary:hover {
-            background-color: #e8ecff;
+            background-color: #e5e7eb;
+            border-color: #d1d5db;
         }
         
         .btn-danger {
-            background-color: #fff0f0;
-            color: #dc3545;
-            border: 1px solid #ffd8d8;
+            background-color: #fee2e2;
+            color: #ef4444;
+            border: 1px solid #fecaca;
         }
         
         .btn-danger:hover {
-            background-color: #ffe8e8;
+            background-color: #fecaca;
+            border-color: #fca5a5;
         }
         
         /* Responsive */
         @media (max-width: 768px) {
+            .settings-section h2 {
+                font-size: 1.3rem;
+            }
+            .settings-card {
+                padding: 1.5rem;
+            }
             .setting-item {
                 flex-direction: column;
                 align-items: flex-start;
             }
             
             .setting-label {
-                margin-bottom: 0.5rem;
+                margin-bottom: 0.75rem;
+            }
+
+            .setting-control {
+                width: 100%;
+            }
+
+            .setting-control select {
+                width: 100%;
+            }
+
+            .btn {
+                width: 100%;
+                margin-right: 0;
             }
         }
     </style>
