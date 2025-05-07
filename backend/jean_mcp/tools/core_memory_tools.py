@@ -113,6 +113,8 @@ def register_core_memory_tools(mcp: FastMCP):
         Returns:
             Dictionary with success status and any relevant identifiers.
         """
+        logger.debug(f"create_jean_memory_entry called with metadata: {metadata} (type: {type(metadata)})")
+
         if not ctx or not ctx.request_context.lifespan_context.db:
             logger.error("Database not available in create_jean_memory_entry")
             return {"success": False, "error": "Database not available"}
@@ -133,6 +135,16 @@ def register_core_memory_tools(mcp: FastMCP):
         # If an update to an existing entry is intended, the caller MUST provide the correct source_identifier.
         effective_source_identifier = source_identifier if source_identifier else f"{context_type}_{datetime.utcnow().isoformat()}_{str(user_id)}"
 
+        # Validate metadata type before passing to DB
+        processed_metadata = None
+        if metadata is not None:
+            if isinstance(metadata, dict):
+                processed_metadata = metadata
+            else:
+                logger.warning(f"Received metadata of unexpected type: {type(metadata)}. Value: {metadata}. Forcing to None.")
+                # Optionally, could return an error here if metadata must be a dict when provided
+                # return {"success": False, "error": f"Invalid metadata type: {type(metadata)}. Expected dict or None."}
+        
         try:
             success = await db.store_context(
                 user_id=user_id,
@@ -140,7 +152,7 @@ def register_core_memory_tools(mcp: FastMCP):
                 context_type=context_type,
                 content=content, # content is already a Dict[str, Any]
                 source_identifier=effective_source_identifier,
-                metadata=metadata
+                metadata=processed_metadata # Use the validated metadata
             )
             
             if success:

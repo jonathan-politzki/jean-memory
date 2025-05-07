@@ -1,0 +1,17 @@
+{
+    "mcpServers": {
+      "jean-memory-stdio": {
+        "command": "python3",
+        "args": [
+          "/Users/jonathanpolitzki/Desktop/Coding/jean-memory/backend/jean_mcp_server.py",
+          "--mode", "stdio"
+        ],
+        "env": {
+          "JEAN_USER_ID": "1",
+          "JEAN_API_KEY": "test-key",
+          "DATABASE_URL": "postgresql://postgres:postgres@localhost:5433/postgres",
+          "GEMINI_API_KEY": "AIzaSyBX4NRoTz-DfABKRtbf_I3DoC7h_bMOGiQ" 
+        }
+      }
+    }
+  }
