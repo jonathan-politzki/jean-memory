@@ -21,7 +21,11 @@ RUN pip install "mcp[cli]>=1.6.0"
 COPY . /app/
 
 # Expose the port the app runs on
-EXPOSE 8000
+EXPOSE 8001
+
+# Set environment variables
+ENV MCP_LOG_LEVEL=INFO
+ENV MCP_LOG_TO_STDERR=true
 
 # Command to run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+CMD ["python", "jean_mcp_server.py", "--mode", "http", "--host", "0.0.0.0", "--port", "8001"] 

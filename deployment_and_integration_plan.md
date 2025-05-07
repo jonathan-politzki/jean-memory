@@ -33,18 +33,23 @@ The goal of this phase is to get the existing Dockerized backend service live an
         *(Replace `YOUR_REPO_NAME` and `YOUR_PREFERRED_REGION` e.g., `jean-memory-repo`, `us-central1`)*
 
 3.  **Tag & Push Docker Image:**
+    *   Build the Docker image:
+        ```bash
+        cd backend
+        docker build -t jean-memory-service:latest .
+        ```
     *   Tag your local Docker image for Artifact Registry:
         ```bash
-        docker tag YOUR_LOCAL_IMAGE_NAME YOUR_PREFERRED_REGION-docker.pkg.dev/YOUR_PROJECT_ID/YOUR_REPO_NAME/YOUR_IMAGE_NAME:latest
+        docker tag jean-memory-service:latest YOUR_PREFERRED_REGION-docker.pkg.dev/YOUR_PROJECT_ID/YOUR_REPO_NAME/jean-memory-service:latest
         ```
-        *(Example: `docker tag jean-memory-service us-central1-docker.pkg.dev/my-gcp-project/jean-memory-repo/jean-memory-service:latest`)*
+        *(Example: `docker tag jean-memory-service:latest us-central1-docker.pkg.dev/my-gcp-project/jean-memory-repo/jean-memory-service:latest`)*
     *   Configure Docker to authenticate with Artifact Registry:
         ```bash
         gcloud auth configure-docker YOUR_PREFERRED_REGION-docker.pkg.dev
         ```
     *   Push the tagged image:
         ```bash
-        docker push YOUR_PREFERRED_REGION-docker.pkg.dev/YOUR_PROJECT_ID/YOUR_REPO_NAME/YOUR_IMAGE_NAME:latest
+        docker push YOUR_PREFERRED_REGION-docker.pkg.dev/YOUR_PROJECT_ID/YOUR_REPO_NAME/jean-memory-service:latest
         ```
 
 4.  **Database Setup (e.g., Cloud SQL):**
