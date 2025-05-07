@@ -183,7 +183,15 @@ def register_core_memory_tools(mcp: FastMCP):
         Use this tool when understanding past interactions, user preferences, stored data,
         or other contextual history would significantly improve your response.
         Clearly state what you hope to understand or retrieve in 'task_description'.
-        Optionally, suggest 'target_context_types' (e.g., ["explicit_note", "project_summary"]) to search.
+        
+        Available context types include:
+        - "user_preference": For user likes, dislikes, preferences, and values
+        - "explicit_note": For notes, facts, and specific information explicitly shared
+        - "user_profile": For personal information like name, occupation, etc.
+        - "project_update": For information about ongoing projects
+        
+        You can specify target_context_types as a list (e.g., ["user_profile", "user_preference"])
+        to focus on specific memory categories, otherwise default ones will be used.
         """
         logger.info(f"access_jean_memory called. Query: '{current_query}', Task: '{task_description}', Topics: {relevant_topics}, Target Types: {target_context_types}")
 
@@ -202,8 +210,8 @@ def register_core_memory_tools(mcp: FastMCP):
         # Determine context types to query
         types_to_query = target_context_types
         if not types_to_query:
-            # Default types if not specified by the LLM; can be made more sophisticated later
-            types_to_query = ["user_preference", "explicit_note"]
+            # Default types if not specified by the LLM; include more context types by default
+            types_to_query = ["user_preference", "explicit_note", "user_profile"]
             logger.info(f"No target_context_types provided, defaulting to: {types_to_query}")
 
         all_retrieved_items = []
@@ -215,7 +223,7 @@ def register_core_memory_tools(mcp: FastMCP):
         search_term = None
         if relevant_topics and relevant_topics[0]: # Use first topic as search term
             search_term = relevant_topics[0]
-        elif current_query and len(current_query.split()) <= 7: # Increased word limit slightly for search term
+        elif current_query and len(current_query.split()) <= 10: # Increased word limit for better search term
             search_term = current_query
        
         if search_term:
@@ -264,23 +272,15 @@ def register_core_memory_tools(mcp: FastMCP):
             logger.info("No items found by search or recent retrieval.")
             return {"success": True, "summary": "No specific memories found matching the criteria.", "raw_context": ""}
 
-        # For now, just return the raw retrieved data formatted for an LLM.
-        # Gemini synthesis will be the next step.
+        # Format the raw retrieved data for an LLM
         raw_context_str = format_retrieved_context_for_llm(all_retrieved_items)
        
-        logger.info(f"Retrieved {len(all_retrieved_items)} total items. Passing to Gemini for synthesis (TODO).")
-        # TODO: Step 5 & 6 - Use Gemini API with a well-crafted prompt
-        # For now, let's return the raw context directly for testing retrieval.
-       
-        # Example of what will be passed to Gemini (simplified):
-        # gemini_prompt = f"Based on the following retrieved memories related to the user query '{current_query}' and the task '{task_description}', provide a concise understanding or answer:\n\n{raw_context_str}\"\n        # synthesized_understanding = await call_gemini(gemini_prompt) # Placeholder
-
         # --- Gemini Synthesis Step ---
         if not gemini_ready_for_core:
             logger.warning("Gemini not configured, returning raw context from access_jean_memory.")
             return {
                 "success": True, 
-                "summary": "Retrieved memory items, but Gemini synthesis is not available (API key missing?).",
+                "summary": "I found some memory items, but cannot synthesize them properly. Here's what I found:",
                 "retrieved_raw_context_for_llm": raw_context_str,
                 "debug_retrieved_item_count": len(all_retrieved_items)
             }
@@ -290,7 +290,7 @@ def register_core_memory_tools(mcp: FastMCP):
             logger.error("Failed to get Gemini model instance, returning raw context.")
             return {
                 "success": True, 
-                "summary": "Retrieved memory items, but failed to initialize Gemini model for synthesis.",
+                "summary": "I found some memory items, but could not process them properly. Here's what I found:",
                 "retrieved_raw_context_for_llm": raw_context_str,
                 "debug_retrieved_item_count": len(all_retrieved_items)
             }
@@ -334,14 +334,16 @@ def register_core_memory_tools(mcp: FastMCP):
             }
         except Exception as e:
             logger.exception(f"Error during Gemini API call in access_jean_memory: {e}")
+            # Improved error message and better fallback behavior
+            error_msg = f"Gemini synthesis failed: {str(e)}"
             return {
                 "success": False, 
-                "error": f"Gemini synthesis failed: {str(e)}",
+                "error": error_msg,
                 "summary": "Gemini synthesis failed. Returning raw context instead.",
                 "retrieved_raw_context_for_llm": raw_context_str, 
                 "debug_retrieved_item_count": len(all_retrieved_items)
             }
-        # --- End Gemini Synthesis Step --- 
+        # --- End Gemini Synthesis Step ---
 
     @mcp.tool(name="diagnose_list_gemini_models") # Explicit name for clarity
     async def list_available_gemini_models(ctx: Context = None) -> Dict[str, Any]:
@@ -417,4 +419,196 @@ def register_core_memory_tools(mcp: FastMCP):
             
         except Exception as e:
             logger.exception(f"Error clearing context bank '{context_type_to_clear}' for user {user_id}: {e}")
-            return {"success": False, "error": str(e)} 
+            return {"success": False, "error": str(e)}
+
+    @mcp.tool()
+    async def create_user_profile(
+        name: Optional[str] = None,
+        details: Dict[str, Any] = None,
+        ctx: Context = None
+    ) -> Dict[str, Any]:
+        """Create or update a user's profile information in memory.
+        
+        This is a specialized wrapper around create_jean_memory_entry specifically for user profile data.
+        
+        Args:
+            name: The user's name (optional)
+            details: Additional user details like occupation, location, etc. (optional)
+            ctx: MCP context object.
+        
+        Returns:
+            Dictionary with success status and relevant information.
+        """
+        logger.info(f"Creating/updating user profile with name: {name}, details: {details}")
+        
+        if not ctx or not ctx.request_context.lifespan_context.db:
+            logger.error("Database not available in create_user_profile")
+            return {"success": False, "error": "Database not available"}
+        
+        # Create a content dictionary with all provided information
+        content = {}
+        if name:
+            content["name"] = name
+        
+        if details and isinstance(details, dict):
+            # Add all the details to the content
+            content.update(details)
+        
+        if not content:
+            return {"success": False, "error": "No profile information provided. Please provide name or details."}
+        
+        # Use the standard memory creation function with user_profile context type
+        # Using a consistent source identifier makes it update existing entries
+        source_id = f"user_profile_{ctx.request_context.lifespan_context.user_id}"
+        metadata = {"tags": ["profile", "personal_info"]}
+        
+        try:
+            # Call the existing create_jean_memory_entry function
+            result = await create_jean_memory_entry(
+                context_type="user_profile",
+                content=content,
+                source_identifier=source_id,
+                metadata=metadata,
+                ctx=ctx
+            )
+            
+            if result.get("success"):
+                return {
+                    "success": True,
+                    "message": "User profile information saved successfully.",
+                    "profile_data": content
+                }
+            else:
+                return result  # Pass through any error from create_jean_memory_entry
+                
+        except Exception as e:
+            logger.exception(f"Error in create_user_profile: {e}")
+            return {"success": False, "error": str(e)}
+
+    @mcp.tool()
+    async def advanced_memory_access(
+        query: str,
+        context_types: List[str],
+        max_items_per_type: int = 5,
+        ctx: Context = None
+    ) -> Dict[str, Any]:
+        """Advanced memory access that queries multiple context types with better prioritization.
+        
+        This tool allows you to search across multiple memory banks at once and get combined results.
+        
+        Args:
+            query: What you're looking for (e.g., "user's name" or "favorite color")
+            context_types: List of context types to search, in priority order (e.g., ["user_profile", "user_preference"])
+            max_items_per_type: Maximum items to retrieve per context type
+            ctx: MCP context object
+            
+        Returns:
+            Dictionary with comprehensive results across all specified context types
+        """
+        logger.info(f"Advanced memory access called with query: '{query}', types: {context_types}")
+        
+        if not ctx or not ctx.request_context.lifespan_context.db:
+            logger.error("Database not available in advanced_memory_access")
+            return {"success": False, "error": "Database not available"}
+
+        db = ctx.request_context.lifespan_context.db
+        user_id = ctx.request_context.lifespan_context.user_id
+        tenant_id = ctx.request_context.lifespan_context.tenant_id
+        
+        if not user_id:
+            logger.error("User ID not provided in advanced_memory_access")
+            return {"success": False, "error": "User ID not provided"}
+            
+        if not context_types:
+            logger.warning("No context types provided, using defaults")
+            context_types = ["user_profile", "user_preference", "explicit_note"]
+            
+        # Results organized by context type
+        results_by_type = {}
+        combined_items = []
+        
+        # First, try to search for exact matches in each context type
+        for context_type in context_types:
+            try:
+                items = await db.search_context(
+                    user_id=user_id,
+                    tenant_id=tenant_id,
+                    context_type=context_type,
+                    query=query,
+                    limit=max_items_per_type
+                )
+                
+                if items:
+                    logger.info(f"Found {len(items)} items in '{context_type}' matching '{query}'")
+                    results_by_type[context_type] = items
+                    combined_items.extend(items)
+                else:
+                    # If search found nothing, get recent items as fallback
+                    logger.info(f"No search results for '{context_type}', getting recent items")
+                    recent_items = await db.get_context(
+                        user_id=user_id,
+                        tenant_id=tenant_id,
+                        context_type=context_type,
+                        limit=max_items_per_type
+                    )
+                    
+                    if recent_items:
+                        logger.info(f"Found {len(recent_items)} recent items in '{context_type}'")
+                        results_by_type[context_type] = recent_items
+                        combined_items.extend(recent_items)
+                    else:
+                        results_by_type[context_type] = []
+                        
+            except Exception as e:
+                logger.exception(f"Error accessing memory type '{context_type}': {e}")
+                results_by_type[context_type] = []
+                
+        if not combined_items:
+            return {
+                "success": True,
+                "summary": "No memory items found across any of the specified context types.",
+                "results_by_type": results_by_type
+            }
+            
+        # Format results for consumption
+        raw_context = format_retrieved_context_for_llm(combined_items)
+        
+        # Use Gemini for synthesis if available
+        if gemini_ready_for_core:
+            gemini_model = await get_gemini_model_async()
+            if gemini_model:
+                gemini_prompt = f"""
+                You are an AI assistant helping access a user's memory based on a specific query.
+                
+                Query: "{query}"
+                
+                Below are memory entries retrieved from different context types:
+                {raw_context}
+                
+                Please synthesize the most relevant information from these memories that directly answers
+                the query. Focus on extracting the most accurate and specific answer.
+                If no information directly answers the query, state that clearly.
+                
+                Synthesized answer:
+                """
+                
+                try:
+                    response = await asyncio.to_thread(gemini_model.generate_content, gemini_prompt)
+                    synthesized_text = response.text
+                    return {
+                        "success": True,
+                        "summary": synthesized_text,
+                        "results_by_type": results_by_type,
+                        "raw_context": raw_context
+                    }
+                except Exception as e:
+                    logger.exception(f"Gemini synthesis failed in advanced_memory_access: {e}")
+                    # Fall through to non-Gemini response
+            
+        # If Gemini not available or failed, return structured data
+        return {
+            "success": True,
+            "summary": "Retrieved memory items across multiple context types.",
+            "results_by_type": results_by_type,
+            "raw_context": raw_context
+        } 
