@@ -183,6 +183,7 @@ This document outlines the plan and progress for deploying the JEAN Memory backe
 *   **Browser 403 Forbidden:** Persistent issue accessing deployed services directly via browser (`.run.app` URL) despite correct IAM (`run.invoker`) and successful authenticated `curl` requests. Likely caused by restrictive Organization Policy or similar Google infrastructure behavior preventing direct authenticated browser access. Workaround is using IAP + Load Balancer.
 *   **`gcloud` Components:** Required installation of `beta` and `cloud_sql_proxy` components for certain commands (`gcloud beta sql connect`, `gcloud run services proxy`).
 *   **`psql` Client:** Required installation via Homebrew (`brew install postgresql`) for `gcloud beta sql connect` to function.
+*   **Local MCP Client (`ModuleNotFoundError: No module named 'uvicorn'`):** Fixed by ensuring the Claude Desktop MCP configuration uses the full path to the Python executable within the project's local Poetry virtual environment (`poetry env info --path` in the `backend` directory, then append `/bin/python`). This requires `poetry install` to be run locally in the `backend` directory first. Also involved fixing the `poetry` command itself by correcting its shebang line (`#!/usr/bin/env python3`) in `/Library/Frameworks/Python.framework/Versions/3.10/bin/poetry`.
 
 ## Post-Deployment Tasks
 

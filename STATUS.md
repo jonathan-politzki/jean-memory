@@ -62,8 +62,13 @@
 ## How to Run (for MCP with Claude Desktop)
 1. Ensure Docker is running.
 2. In the project root, run `docker-compose up -d` (primarily for the `postgres` service).
-3. Configure `~/Library/Application Support/Claude/claude_desktop_config.json` as per documentation (stdio launch of `backend/standalone_mcp_server.py` with correct `env` vars for `DATABASE_URL`, `GEMINI_API_KEY`, `JEAN_USER_ID`).
-4. Completely quit and restart Claude Desktop.
+3. **Local Backend Setup:** Navigate to the `backend` directory (`cd backend`) and run `poetry install` to ensure dependencies are installed in the local virtual environment.
+4. **Find Python Path:** In the `backend` directory, run `poetry env info --path` and note the full path to the virtual environment.
+5. Configure `~/Library/Application Support/Claude/claude_desktop_config.json` as per documentation:
+    - Use the **full path to the Python executable** from the Poetry virtual environment (e.g., `/path/from/step4/bin/python`) as the `"command"`.
+    - Set the `"args"` to point to `backend/jean_mcp_server.py` (using its full path) with `--mode stdio`.
+    - Set the correct `env` vars (`DATABASE_URL` pointing to `localhost:5433`, `GEMINI_API_KEY`, `JEAN_USER_ID`).
+6. Completely quit and restart Claude Desktop.
 
 ## MCP Integration
 JEAN is an "MCP first" application. The `stdio`-based integration with Claude Desktop is now the primary local development and testing method. The system provides:
@@ -73,4 +78,5 @@ JEAN is an "MCP first" application. The `stdio`-based integration with Claude De
 
 ## Development Mode Notes
 - `JEAN_USER_ID` and `JEAN_API_KEY` in `claude_desktop_config.json`'s `env` block provide context for the `stdio` launched server.
-- `validate_api_key` in `context_storage.py` has development fallbacks; review for production. 
+- `validate_api_key` in `context_storage.py` has development fallbacks; review for production.
+- **Poetry Setup:** Ensure the `poetry` command works in your local terminal. If you encounter `ModuleNotFoundError: No module named 'poetry'`, you may need to fix the shebang line in the `poetry` script or reinstall Poetry. If you get SSL errors during installation, run `Install Certificates.command` from your Python Application folder. 

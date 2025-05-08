@@ -90,7 +90,8 @@ Our current MCP implementation follows the basic Model Context Protocol pattern 
 
 ### Prerequisites
 - Node.js 16+ for the frontend
-- Python 3.10+ for the backend
+- Python 3.10+ and [Poetry](https://python-poetry.org/) for the backend
+- Docker and Docker Compose for running local database/services
 - Google Cloud account for OAuth integration
 
 ### Running the Frontend
@@ -100,12 +101,38 @@ node server.js
 ```
 Frontend will be available at http://localhost:3005
 
-### Running the Backend
+### Running the Backend (Local Development Server)
+
+This runs the standard FastAPI backend, typically used for frontend interaction during development.
+
+```bash
+# Navigate to backend directory
+cd backend
+# Install dependencies if you haven't already
+poetry install
+# Run the development server
+poetry run uvicorn app.main:app --reload --port 8000
+```
+Backend API will be available at http://localhost:8000
+
+### Running the Backend (MCP Server for Claude Desktop)
+
+This method runs the `jean_mcp_server.py` script directly, which is what the MCP client configuration often points to.
+
+**Important:** Ensure you have installed dependencies locally using Poetry:
 ```bash
 cd backend
-python3 -m uvicorn app.main:app --reload --port 8080
+poetry install
 ```
-Backend API will be available at http://localhost:8080
+
+You can run the MCP server manually for testing using Poetry's virtual environment:
+```bash
+cd backend
+# Example: Run in stdio mode
+poetry run python jean_mcp_server.py --mode stdio
+# Example: Run in http mode
+poetry run python jean_mcp_server.py --mode http --port 8001
+```
 
 ### Testing the MCP Endpoint
 Once both frontend and backend are running:
@@ -118,9 +145,37 @@ Once both frontend and backend are running:
 
 To use JEAN with an MCP-compatible client (like Claude Desktop):
 
-1. Copy the MCP configuration from your dashboard
-2. Add it to your MCP client's settings
-3. The client will now have access to your personal context
+1.  **Ensure Local Dependencies:** Make sure you have run `poetry install` within the `backend` directory locally to create a virtual environment and install all necessary packages.
+2.  **Find Python Path:** In the `backend` directory, run `poetry env info --path`. This will give you the path to the virtual environment (e.g., `/path/to/your/project/backend/.venv`). Construct the full path to the Python executable within this environment (e.g., `/path/to/your/project/backend/.venv/bin/python`).
+3.  **Configure MCP Client:**
+    *   Copy the MCP configuration template (see below or obtain from a running instance if the frontend provides it).
+    *   **Crucially, set the `"command"` value in the configuration to the full Python path you found in step 2.**
+    *   Set the necessary `env` variables in the configuration (DATABASE_URL pointing to local Docker Postgres `localhost:5433`, API keys, etc.).
+4.  **Add Config to Client:** Add the modified configuration JSON to your MCP client's settings.
+5.  **Restart Client:** Restart your MCP client (e.g., Claude Desktop). The client will now use the correct Python environment to run `jean_mcp_server.py` and should have access to your personal context via the tools.
+
+**Example MCP Configuration Snippet (Modify `"command"` and `env`):**
+```json
+{
+  "mcpServers": {
+    "jean-memory-stdio": {
+      "command": "/path/to/your/project/backend/.venv/bin/python", // <-- UPDATE THIS PATH
+      "args": [
+        "/path/to/your/project/backend/jean_mcp_server.py", // <-- Ensure this points to the script
+        "--mode", "stdio"
+      ],
+      "env": {
+        "JEAN_USER_ID": "1",
+        "JEAN_API_KEY": "local-dev-key", // Use a suitable key for local dev
+        "DATABASE_URL": "postgresql://postgres:postgres@localhost:5433/postgres", // Assumes Docker Compose DB
+        "GEMINI_API_KEY": "YOUR_GEMINI_KEY_HERE"
+      }
+    }
+  }
+}
+```
+
+**Note on macOS SSL Issues:** If you encounter `SSL: CERTIFICATE_VERIFY_FAILED` errors when installing Poetry or Python packages, you may need to run the `Install Certificates.command` script located in your Python installation's Applications folder (e.g., `/Applications/Python 3.10/`).
 
 ## Docker Deployment (Future)
 
@@ -162,5 +217,12 @@ For Google authentication to work, you need to set up the following:
 
 ## Setup Instructions
 
-1. Create a `.env` file in the project root with the required environment variables.
-2. Run the application using Docker Compose: `docker-compose up`
+1.  Clone the repository.
+2.  **Backend Setup:**
+    *   Navigate to the `backend` directory: `cd backend`
+    *   Install dependencies using Poetry: `poetry install`
+3.  **Environment:** Create a `.env` file in the project root (or configure environment variables directly) with the required values (see "Environment Variables" section). Minimally, `DATABASE_URL` (for local tools) and `GEMINI_API_KEY` are needed. Google OAuth keys are needed for frontend login.
+4.  **Run Services:** Start the local database and other services: `docker-compose up -d`
+5.  **Configure MCP Client (Crucial for Tools):** Follow the steps in the "Integration with MCP Clients" section above to configure your client (e.g., Claude Desktop) to use the correct Python environment via the full path from `poetry env info --path`.
+6.  **Optional: Run Frontend:** If needed, `cd frontend && node server.js`.
+7.  **Optional: Run Backend API:** If needed, `cd backend && poetry run uvicorn app.main:app --reload --port 8000`.
