@@ -1,0 +1,6 @@
+etag: ACAB
+
+bindings:
+- members:
+  - user:jonathan@jeantechnologies.com
+  role: roles/iap.securedWebAppUser

@@ -99,54 +99,65 @@ This document outlines the plan and progress for deploying the JEAN Memory backe
 1.  **Reserve Static External IP Address:**
     *   Create a global static external IP address for the Load Balancer frontend.
     *   Command: `gcloud compute addresses create jean-memory-lb-ip --global --network-tier=PREMIUM`
-    *   Note the reserved IP address.
+    *   Note the reserved IP address. **Status: COMPLETED (IP: 34.160.168.171)**
 
 2.  **Create Serverless NEG:**
     *   Create a Serverless Network Endpoint Group (NEG) pointing to the `jean-memory-frontend` Cloud Run service.
     *   Command: `gcloud compute network-endpoint-groups create jean-frontend-serverless-neg --region=us-central1 --network-endpoint-type=serverless --cloud-run-service=jean-memory-frontend`
+    *   **Status: COMPLETED**
 
 3.  **Create SSL Certificate (Google-managed):**
     *   If using a custom domain (e.g., `jean.yourdomain.com`), configure DNS first.
     *   Create a Google-managed SSL certificate for your domain(s). This requires domain ownership verification.
     *   Command: `gcloud compute ssl-certificates create jean-memory-ssl-cert --domains=YOUR_DOMAIN_HERE` (Replace `YOUR_DOMAIN_HERE`)
     *   (If no custom domain, skip this and use Google's default domain for the LB initially, though SSL is still recommended).
+    *   **Status: IN PROGRESS / STALLED. Certificate `jean-memory-ssl-cert` created for `jeantechnologies.com`. Current status is `FAILED_NOT_VISIBLE` but Google Cloud is not displaying the required CNAME/DNS record for domain verification via `gcloud` or the console. This is blocking activation.**
 
 4.  **Create Load Balancer Backend Service:**
     *   Create a backend service that will route traffic to the Serverless NEG.
     *   Command: `gcloud compute backend-services create jean-frontend-backend-service --global --load-balancing-scheme=EXTERNAL_MANAGED`
+    *   **Status: COMPLETED (Protocol updated to HTTPS)**
 
 5.  **Add NEG to Backend Service:**
     *   Attach the Serverless NEG created in Step 2 to the backend service.
     *   Command: `gcloud compute backend-services add-backend jean-frontend-backend-service --global --network-endpoint-group=jean-frontend-serverless-neg --network-endpoint-group-region=us-central1`
+    *   **Status: COMPLETED**
 
 6.  **Enable IAP on Backend Service:**
     *   **OAuth Consent Screen:** Ensure an OAuth consent screen is configured for the project (required for IAP). Navigate to "APIs & Services" -> "OAuth consent screen" in the Console. Configure internal or external as appropriate.
     *   **Enable IAP:** Use `gcloud` or the Console to enable IAP for the backend service, referencing the OAuth client ID created for web applications (ensure the Load Balancer's future URI is added there if necessary, though typically IAP uses its own redirect).
     *   Command: `gcloud compute backend-services update jean-frontend-backend-service --global --iap=enabled,oauth2-client-id=YOUR_WEB_OAUTH_CLIENT_ID,oauth2-client-secret=YOUR_WEB_OAUTH_CLIENT_SECRET` (Replace with your *actual* OAuth Web Client ID and Secret).
+    *   **Status: COMPLETED (IAP API also enabled in console)**
 
 7.  **Create Load Balancer URL Map:**
     *   Define how incoming requests are routed to backend services (for now, default to `jean-frontend-backend-service`).
     *   Command: `gcloud compute url-maps create jean-memory-lb-url-map --default-service jean-frontend-backend-service`
+    *   **Status: COMPLETED**
 
 8.  **Create Target HTTPS Proxy:**
     *   Create the proxy that uses the URL map and the SSL certificate.
     *   Command: `gcloud compute target-https-proxies create jean-memory-https-proxy --url-map=jean-memory-lb-url-map --ssl-certificates=jean-memory-ssl-cert` (Reference the cert created in Step 3, if applicable).
+    *   **Status: COMPLETED (Used `jean-memory-ssl-cert` while it was `PROVISIONING`)**
 
 9.  **Create Global Forwarding Rule:**
     *   Create the rule that directs traffic from the reserved static IP address and port 443 to the HTTPS proxy.
     *   Command: `gcloud compute forwarding-rules create jean-memory-https-forwarding-rule --global --load-balancing-scheme=EXTERNAL_MANAGED --network-tier=PREMIUM --address=jean-memory-lb-ip --target-https-proxy=jean-memory-https-proxy --ports=443`
+    *   **Status: COMPLETED**
 
 10. **Grant Users IAP Access:**
     *   Grant users/groups who need browser access the `IAP-secured Web App User` (`roles/iap.securedWebAppUser`) role *on the IAP-secured backend service*.
     *   Command: `gcloud compute backend-services add-iam-policy-binding jean-frontend-backend-service --global --member='user:jonathan@jeantechnologies.com' --role='roles/iap.securedWebAppUser'`
+    *   **Status: COMPLETED (Achieved via Google Cloud Console IAP page, as `gcloud` commands failed to apply the role directly to the backend service). User `jonathan@jeantechnologies.com` granted `IAP-secured Web App User` role.**
 
 11. **Update DNS (If using Custom Domain):**
     *   Point your custom domain's A record to the reserved static IP address noted in Step 1.
+    *   **Status: PENDING. Requires `jean-memory-ssl-cert` to be ACTIVE. Load Balancer IP is `34.160.168.171`. Current `jeantechnologies.com` A record points to Vercel (`76.76.21.21`).**
 
 12. **Test Access:**
     *   Access the frontend via the Load Balancer's IP address or your custom domain (if configured).
     *   You should be redirected through the Google login flow (handled by IAP).
     *   After successful login, you should see your frontend application.
+    *   **Status: PENDING DNS and SSL resolution.**
 
 ---
 
