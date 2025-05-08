@@ -1,161 +1,177 @@
-# JEAN Memory Backend Deployment & Frontend Integration Plan
+# JEAN Memory Deployment & Integration Plan (Updated May 8, 2025)
 
-This document outlines the plan to deploy the Dockerized JEAN Memory backend service to Google Cloud Run with Google OAuth authentication, automatic API key generation, and frontend integrations.
+This document outlines the plan and progress for deploying the JEAN Memory backend and frontend services to Google Cloud Run, including database setup, authentication, and secure access configuration.
 
-## Phase 1: Backend API Key Generation & User Authentication
+**Current Status:**
+*   Backend (`jean-memory-api`) is deployed, functional, and connected to Cloud SQL. Requires authenticated access.
+*   Frontend (`jean-memory-frontend`) is deployed and functional. Requires authenticated access.
+*   Direct browser access to both services via their default `.run.app` URLs is **blocked** (results in 403 Forbidden), likely due to organization security policies, even for authenticated users with `run.invoker` roles.
+*   Access via authenticated `curl` requests (using `gcloud auth print-identity-token`) **works** for both services.
+*   Access to the frontend via `gcloud run services proxy` **works**, and the Google OAuth login flow was successfully tested through this proxy.
 
-The goal of this phase is to enhance the existing authentication system to generate unique API keys for each user when they authenticate with Google OAuth.
+**Next Major Goal:** Configure secure browser access to the frontend using Google Cloud Load Balancer and Identity-Aware Proxy (IAP).
+
+---
+
+## Phase 1: Local Setup & Prerequisites (Completed)
+
+*   **Google OAuth Flow:** Implemented in backend (`/api/auth/google/...`) and frontend (`/auth/google/callback.html` client-side handling).
+*   **Dockerization:** Backend (`./backend/Dockerfile`) and frontend (`./frontend/Dockerfile`) are containerized.
+*   **Local Testing:** Assumed successful via `docker-compose.yml`.
+
+---
+
+## Phase 2: GCP Environment Setup (Completed)
+
+*   **Google Cloud SDK (`gcloud`):**
+    *   Installed on macOS (`arm64`).
+    *   Authenticated via `gcloud auth login`.
+    *   PATH configuration required manual sourcing (`source ~/.zshrc` / new terminal) and explicit path (`~/google-cloud-sdk/bin/gcloud`) for some commands initially. Homebrew setup (`brew install postgresql`) eventually resolved PATH for `psql`.
+*   **Project Selection:**
+    *   Selected existing project `gen-lang-client-0888810452`.
+*   **API Enabling:** Enabled the following APIs for the project:
+    *   Artifact Registry API (`artifactregistry.googleapis.com`)
+    *   Cloud Run API (`run.googleapis.com`)
+    *   Cloud SQL Admin API (`sqladmin.googleapis.com`)
+    *   Secret Manager API (`secretmanager.googleapis.com`)
+    *   Cloud SQL Component API (`sql-component.googleapis.com`) (Enabled during deploy)
+    *   Cloud Build API (`cloudbuild.googleapis.com`) (Enabled during accidental source deploy attempt)
+*   **Artifact Registry Repository Creation:**
+    *   Created Docker repository `jean-memory-repo` in region `us-central1`.
+
+---
+
+## Phase 3: Backend Deployment (`jean-memory-api`) (Completed)
+
+*   **Docker Image Build:**
+    *   Built image using `--platform linux/amd64` flag to ensure compatibility with Cloud Run execution environment.
+    *   Tagged as `jean-memory-service:latest`.
+*   **Docker Authentication:**
+    *   Configured Docker authentication for Artifact Registry using `gcloud auth configure-docker us-central1-docker.pkg.dev`.
+    *   Encountered and resolved `docker-credential-gcloud not in system PATH` issue by prepending `PATH=$HOME/google-cloud-sdk/bin:$PATH` to the `docker push` command.
+*   **Image Push:** Pushed `amd64` image `us-central1-docker.pkg.dev/gen-lang-client-0888810452/jean-memory-repo/jean-memory-service:latest` to Artifact Registry.
+*   **Cloud SQL Instance Creation:**
+    *   Created PostgreSQL 15 instance `jean-memory-db` in `us-central1`.
+    *   Instance Public IP: `35.222.241.168` (Note: Prefer connection via Cloud SQL Connection Name).
+    *   Instance Connection Name: `gen-lang-client-0888810452:us-central1:jean-memory-db`
+*   **Database User Creation:**
+    *   Set a strong password for the default `postgres` superuser via `gcloud sql users set-password`.
+    *   Created a dedicated application user `jean_app_user` with a strong password via `gcloud sql users create ... --password='...'`. Password required URL-encoding for use in `DATABASE_URL`.
+*   **Database Permissions:**
+    *   Connected to Cloud SQL instance via `gcloud beta sql connect ... --user=postgres`.
+    *   Granted necessary privileges (`CONNECT`, `USAGE`, `ALL PRIVILEGES` on tables/sequences in `public` schema) to `jean_app_user`.
+*   **Database Migrations:**
+    *   Applied migrations from `backend/app/database/migrations/003_integrations.sql` by piping the file into `gcloud beta sql connect ... < backend/app/database/migrations/003_integrations.sql`.
+*   **Cloud Run Deployment (`jean-memory-api`):**
+    *   Deployed service using the pushed `amd64` image.
+    *   Configured **without** `--allow-unauthenticated` (requires authentication).
+    *   Added Cloud SQL connection using `--add-cloudsql-instances=gen-lang-client-0888810452:us-central1:jean-memory-db`.
+    *   Set environment variables via `--set-env-vars`, including Google credentials, API keys, and a correctly URL-encoded `DATABASE_URL` using the Cloud SQL connection name (`postgresql://jean_app_user:ENCODED_PASSWORD@/cloudsql/gen-lang-client-0888810452:us-central1:jean-memory-db/postgres`).
+*   **Backend Testing:**
+    *   Verified successful authenticated access using `curl` with an ID token (`gcloud auth print-identity-token`) against the `/health` endpoint.
+
+---
+
+## Phase 4: Frontend Deployment (`jean-memory-frontend`) & Access Troubleshooting (Completed - Deployed, Awaiting IAP)
+
+*   **Docker Image Build:**
+    *   Built image using `--platform linux/amd64` flag.
+    *   Tagged as `jean-memory-frontend:latest`.
+*   **Image Push:** Pushed `amd64` image `us-central1-docker.pkg.dev/gen-lang-client-0888810452/jean-memory-repo/jean-memory-frontend:latest` to Artifact Registry.
+*   **Cloud Run Deployment (`jean-memory-frontend`):**
+    *   Initial attempt with `--allow-unauthenticated` completed deployment but failed to set IAM policy for `allUsers` (likely Org Policy conflict). Direct browser access failed (403).
+    *   Redeployed **without** `--allow-unauthenticated` (requires authentication).
+    *   Set environment variables `BACKEND_URL=https://jean-memory-api-276083385911.us-central1.run.app` and `NODE_ENV=production`. (Removed reserved `PORT` variable).
+*   **Access Testing Results:**
+    *   Direct Browser Access (`https://jean-memory-frontend-...`): **Consistently Failed (403 Forbidden)**, even when logged into the authorized Google account (`jonathan@...` which has `run.invoker` permission). This occurs before hitting the application code.
+    *   `curl` with ID Token: **Successful** (returned `index.html` content).
+    *   `gcloud run services proxy`: **Successful** (accessed via `http://localhost:8080`). Full Google OAuth login flow initiated from the proxied frontend worked successfully, interacting with the deployed backend.
+*   **Conclusion:** Frontend and backend applications are functional and correctly configured for authentication. Direct browser access via default Cloud Run URLs is blocked by Google infrastructure/policy in this project environment.
+
+---
+
+## Phase 5: Secure Frontend Access via IAP & Load Balancer (Next Steps)
+
+**Goal:** Provide secure browser access to the `jean-memory-frontend` service using Identity-Aware Proxy (IAP) fronted by a Google Cloud HTTPS Load Balancer.
 
 **Steps:**
 
-1.  **Enhance Google OAuth Flow (Backend):**
-    *   Ensure `backend/app/routers/google_auth_router.py` correctly handles the OAuth callback.
-    *   The `handle_oauth_callback` method should exchange the `code` for tokens, fetch user info, and use a database instance (passed during router initialization) to call `db.create_or_get_user`.
-    *   This method now returns user info including the `user_id` and generated `api_key` upon successful authentication.
+1.  **Reserve Static External IP Address:**
+    *   Create a global static external IP address for the Load Balancer frontend.
+    *   Command: `gcloud compute addresses create jean-memory-lb-ip --global --network-tier=PREMIUM`
+    *   Note the reserved IP address.
 
-2.  **Google OAuth Configuration (Critical):**
-    *   **Redirect URI:** The correct redirect URI pattern is `http://localhost:3005/auth/google/callback.html` for local development. This URI must be:
-        *   Registered exactly under "Authorized redirect URIs" in the Google Cloud Console for the OAuth 2.0 Client ID.
-        *   Set as the `GOOGLE_REDIRECT_URI` environment variable in the **root `.env` file**.
-    *   **Environment Variables:** `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` **must** be defined in a `.env` file in the project root directory (alongside `docker-compose.yml`). Docker Compose reads this file to inject variables into the backend service.
-    *   **Client-Side Callback:** The frontend handles the callback via client-side JavaScript in `frontend/public/auth/google/callback.html`. The corresponding server-side route in `frontend/server.js` (`app.get('/auth/google/callback', ...)`) is deprecated and must remain commented out.
+2.  **Create Serverless NEG:**
+    *   Create a Serverless Network Endpoint Group (NEG) pointing to the `jean-memory-frontend` Cloud Run service.
+    *   Command: `gcloud compute network-endpoint-groups create jean-frontend-serverless-neg --region=us-central1 --network-endpoint-type=serverless --cloud-run-service=jean-memory-frontend`
 
-3.  **Add Endpoint to Generate MCP Configuration:**
-    *   The endpoint `@app.get("/api/mcp-config/{user_id}")` in `backend/app/main.py` allows fetching the MCP configuration using a valid `user_id` and `api_key`.
-    *   It uses the database to validate the API key against the user ID.
+3.  **Create SSL Certificate (Google-managed):**
+    *   If using a custom domain (e.g., `jean.yourdomain.com`), configure DNS first.
+    *   Create a Google-managed SSL certificate for your domain(s). This requires domain ownership verification.
+    *   Command: `gcloud compute ssl-certificates create jean-memory-ssl-cert --domains=YOUR_DOMAIN_HERE` (Replace `YOUR_DOMAIN_HERE`)
+    *   (If no custom domain, skip this and use Google's default domain for the LB initially, though SSL is still recommended).
 
-4.  **Frontend Integration for API Key Display & MCP Config:**
-    *   The frontend (`frontend/public/auth/google/callback.html`) makes an API call to the backend (`/api/auth/google/callback`) to exchange the code.
-    *   Upon successful login (receiving user info + API key from the backend), the frontend stores the user session (e.g., in localStorage).
-    *   Authenticated pages (e.g., `profile.html`) display user information and fetch/display the MCP configuration using the stored `user_id` and `api_key`.
+4.  **Create Load Balancer Backend Service:**
+    *   Create a backend service that will route traffic to the Serverless NEG.
+    *   Command: `gcloud compute backend-services create jean-frontend-backend-service --global --load-balancing-scheme=EXTERNAL_MANAGED`
 
-## Phase 2: Backend Deployment to Google Cloud Run
+5.  **Add NEG to Backend Service:**
+    *   Attach the Serverless NEG created in Step 2 to the backend service.
+    *   Command: `gcloud compute backend-services add-backend jean-frontend-backend-service --global --network-endpoint-group=jean-frontend-serverless-neg --network-endpoint-group-region=us-central1`
 
-The goal of this phase is to get the existing Dockerized backend service live and accessible on Google Cloud, configured for scalability and individual user data.
+6.  **Enable IAP on Backend Service:**
+    *   **OAuth Consent Screen:** Ensure an OAuth consent screen is configured for the project (required for IAP). Navigate to "APIs & Services" -> "OAuth consent screen" in the Console. Configure internal or external as appropriate.
+    *   **Enable IAP:** Use `gcloud` or the Console to enable IAP for the backend service, referencing the OAuth client ID created for web applications (ensure the Load Balancer's future URI is added there if necessary, though typically IAP uses its own redirect).
+    *   Command: `gcloud compute backend-services update jean-frontend-backend-service --global --iap=enabled,oauth2-client-id=YOUR_WEB_OAUTH_CLIENT_ID,oauth2-client-secret=YOUR_WEB_OAUTH_CLIENT_SECRET` (Replace with your *actual* OAuth Web Client ID and Secret).
 
-**Assumptions:**
-*   Google OAuth authentication has been implemented
-*   API key generation is working correctly
-*   The Docker image for the JEAN Memory backend exists
+7.  **Create Load Balancer URL Map:**
+    *   Define how incoming requests are routed to backend services (for now, default to `jean-frontend-backend-service`).
+    *   Command: `gcloud compute url-maps create jean-memory-lb-url-map --default-service jean-frontend-backend-service`
 
-**Steps:**
+8.  **Create Target HTTPS Proxy:**
+    *   Create the proxy that uses the URL map and the SSL certificate.
+    *   Command: `gcloud compute target-https-proxies create jean-memory-https-proxy --url-map=jean-memory-lb-url-map --ssl-certificates=jean-memory-ssl-cert` (Reference the cert created in Step 3, if applicable).
 
-1.  **Prerequisites & GCP Setup:**
-    *   Install and Authenticate Google Cloud SDK (`gcloud`):
-        *   Install if not present: [Google Cloud SDK Installation Guide](https://cloud.google.com/sdk/docs/install)
-        *   Authenticate: `gcloud auth login`
-        *   Set active project: `gcloud config set project YOUR_PROJECT_ID`
-    *   Enable Required GCP APIs:
-        *   Artifact Registry API: `gcloud services enable artifactregistry.googleapis.com`
-        *   Cloud Run API: `gcloud services enable run.googleapis.com`
-        *   Cloud SQL Admin API (if using Cloud SQL): `gcloud services enable sqladmin.googleapis.com`
-        *   Secret Manager API: `gcloud services enable secretmanager.googleapis.com`
+9.  **Create Global Forwarding Rule:**
+    *   Create the rule that directs traffic from the reserved static IP address and port 443 to the HTTPS proxy.
+    *   Command: `gcloud compute forwarding-rules create jean-memory-https-forwarding-rule --global --load-balancing-scheme=EXTERNAL_MANAGED --network-tier=PREMIUM --address=jean-memory-lb-ip --target-https-proxy=jean-memory-https-proxy --ports=443`
 
-2.  **Container Registry Setup (Artifact Registry):**
-    *   Create a Docker repository in Artifact Registry:
-        ```bash
-        gcloud artifacts repositories create YOUR_REPO_NAME \
-            --repository-format=docker \
-            --location=YOUR_PREFERRED_REGION \
-            --description="JEAN Memory Docker images"
-        ```
-        *(Replace `YOUR_REPO_NAME` and `YOUR_PREFERRED_REGION` e.g., `jean-memory-repo`, `us-central1`)*
+10. **Grant Users IAP Access:**
+    *   Grant users/groups who need browser access the `IAP-secured Web App User` (`roles/iap.securedWebAppUser`) role *on the IAP-secured backend service*.
+    *   Command: `gcloud compute backend-services add-iam-policy-binding jean-frontend-backend-service --global --member='user:jonathan@jeantechnologies.com' --role='roles/iap.securedWebAppUser'`
 
-3.  **Tag & Push Docker Image:**
-    *   Build the Docker image:
-        ```bash
-        cd backend
-        docker build -t jean-memory-service:latest .
-        ```
-    *   Tag your local Docker image for Artifact Registry:
-        ```bash
-        docker tag jean-memory-service:latest YOUR_PREFERRED_REGION-docker.pkg.dev/YOUR_PROJECT_ID/YOUR_REPO_NAME/jean-memory-service:latest
-        ```
-        *(Example: `docker tag jean-memory-service:latest us-central1-docker.pkg.dev/my-gcp-project/jean-memory-repo/jean-memory-service:latest`)*
-    *   Configure Docker to authenticate with Artifact Registry:
-        ```bash
-        gcloud auth configure-docker YOUR_PREFERRED_REGION-docker.pkg.dev
-        ```
-    *   Push the tagged image:
-        ```bash
-        docker push YOUR_PREFERRED_REGION-docker.pkg.dev/YOUR_PROJECT_ID/YOUR_REPO_NAME/jean-memory-service:latest
-        ```
+11. **Update DNS (If using Custom Domain):**
+    *   Point your custom domain's A record to the reserved static IP address noted in Step 1.
 
-4.  **Database Setup (e.g., Cloud SQL):**
-    *   Provision a managed database instance (e.g., Google Cloud SQL for PostgreSQL or MySQL).
-    *   Create necessary databases, users, and schemas required by the JEAN Memory application.
-    *   Securely note the database connection string (user, password, host, port, database name).
-    *   Ensure network connectivity between Cloud Run and the database (e.g., public IP with strong credentials, Cloud SQL Proxy, or VPC native connector).
+12. **Test Access:**
+    *   Access the frontend via the Load Balancer's IP address or your custom domain (if configured).
+    *   You should be redirected through the Google login flow (handled by IAP).
+    *   After successful login, you should see your frontend application.
 
-5.  **Deploy to Google Cloud Run:**
-    *   Execute the deployment command:
-        ```bash
-        gcloud run deploy YOUR_SERVICE_NAME \
-            --image YOUR_PREFERRED_REGION-docker.pkg.dev/YOUR_PROJECT_ID/YOUR_REPO_NAME/YOUR_IMAGE_NAME:latest \
-            --platform managed \
-            --region YOUR_PREFERRED_REGION \
-            --allow-unauthenticated \
-            --set-env-vars "^##^GOOGLE_CLIENT_ID=YOUR_PROD_CLIENT_ID##GOOGLE_CLIENT_SECRET=YOUR_PROD_SECRET##GOOGLE_REDIRECT_URI=YOUR_PROD_REDIRECT_URI##DATABASE_URL=YOUR_PROD_DB_STRING##GEMINI_API_KEY=YOUR_GEMINI_KEY##DEV_MODE=false" \
-            --port YOUR_CONTAINER_PORT
-        ```
-    *   **Key Parameters & Production Env Vars:**
-        *   `YOUR_SERVICE_NAME`: (e.g., `jean-memory-api`)
-        *   `--allow-unauthenticated`: Allows public access. Review security implications for production. Consider using IAM or Identity Platform for frontend-backend authentication.
-        *   `--set-env-vars`: **Crucial** for providing production secrets and configuration. Use Secret Manager for sensitive values like API keys, secrets, and database URLs in a real production setup instead of directly in the command.
-            *   `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`: Your production OAuth credentials.
-            *   `GOOGLE_REDIRECT_URI`: Your **production** redirect URI (e.g., `https://yourdomain.com/auth/google/callback.html`).
-            *   `DATABASE_URL`: Your production database connection string.
-            *   `GEMINI_API_KEY`, `CLAUDE_API_KEY`, etc.
-            *   `DEV_MODE=false`: **Ensure DEV_MODE is disabled in production.**
-        *   `YOUR_CONTAINER_PORT`: (e.g., `8000`).
+---
 
-6.  **Initial Testing & Verification:**
-    *   Access the URL provided by Cloud Run.
-    *   Test the production OAuth flow (requires updating Google Cloud Console with production URIs).
-    *   Perform API calls to test core functionalities.
-    *   Check Cloud Run logs.
+## Phase 6: Final Integrations & Testing (Future)
 
-## Phase 3: Frontend Deployment
+*   **MCP Client Integration:**
+    *   Update Claude Desktop/MCP clients with the production backend URL (`https://jean-memory-api-...`) and user-specific API key/User ID obtained from the frontend.
+    *   Determine how MCP clients will authenticate to the *backend* service (which requires authentication). Options:
+        *   Configure clients to obtain and send Google ID Tokens (ideal if possible).
+        *   Potentially place the *backend* service behind IAP as well (requires clients to handle IAP flow or use service account authentication).
+        *   Explore API Gateway for more granular API key management/authentication.
+*   **Thorough End-to-End Testing:** Test all features, data sources, and integrations.
+*   **Security Enhancements:** Review IAM roles, consider API key rotation, enable Cloud Armor WAF rules on the Load Balancer.
+*   **Monitoring & Maintenance:** Set up Cloud Monitoring dashboards, alerting policies, logging for Cloud Run/Cloud SQL/Load Balancer, configure database backups.
 
-1.  **Update Frontend for Production:**
-    *   Build and push the frontend Docker image (steps are similar to backend).
+---
 
-2.  **Deploy Frontend to Cloud Run (or Vercel/other):**
-    *   If deploying to Cloud Run:
-        ```bash
-        gcloud run deploy YOUR_FRONTEND_SERVICE_NAME \
-            --image=YOUR_GCR_REGION-docker.pkg.dev/YOUR_PROJECT_ID/YOUR_REPO_NAME/jean-memory-frontend:latest \
-            --platform=managed \
-            --region=YOUR_GCR_REGION \
-            --allow-unauthenticated \
-            --set-env-vars="PORT=3005,BACKEND_URL=https://YOUR_BACKEND_SERVICE_URL" 
-        ```
-        *(Replace `YOUR_FRONTEND_SERVICE_NAME`, `YOUR_GCR_REGION`, `YOUR_PROJECT_ID`, `YOUR_REPO_NAME`, and the production `BACKEND_URL`)*
+## Appendix: Troubleshooting Summary Notes
 
-## Phase 4: Integration with Claude Desktop / MCP Clients
-
-Once deployed, the integration workflow will be:
-
-1.  **User Authentication:**
-    *   User visits the deployed JEAN Memory frontend (e.g., `https://yourdomain.com`).
-    *   Signs in with Google OAuth (using the production redirect URI).
-    *   Upon successful authentication, the frontend displays their MCP configuration (fetched from the deployed backend using their `user_id` and `api_key`).
-
-2.  **MCP Client Integration:**
-    *   User copies their MCP configuration.
-    *   Pastes the configuration into their AI client (Claude Desktop, Cursor, etc.).
-    *   The MCP configuration should contain the **production backend URL** and the user-specific API key and User ID.
-    *   The client can now make authenticated requests to the user's memory via the deployed backend API.
-
-## Phase 5: OAuth Troubleshooting Summary (Reference)
-
-Key points identified during local development debugging:
-
-1.  **Environment Variables:** Use a single `.env` file in the project root for Docker Compose environment variable substitution.
-2.  **`redirect_uri_mismatch`:** Verify exact match between Google Cloud Console ("Authorized redirect URIs"), the `GOOGLE_REDIRECT_URI` environment variable (in root `.env`), and backend logs (`[AUTH_DEBUG]`). Allow time for Google changes to propagate.
-3.  **Account-Specific Errors / Caching:** For errors on specific accounts (especially in regular browser mode), clear browser cache/cookies thoroughly and try removing app permissions from the Google Account settings.
-4.  **Client-Side Callback:** The frontend (`callback.html`) handles the callback; the server-side Express route (`/auth/google/callback`) is deprecated and commented out.
-5.  **Duplicate Frontend Call:** A flashing error on success might indicate `callback.html` JavaScript makes a duplicate backend call. Refine the JS to call only once.
+*   **Architecture Mismatch:** Initial backend deployment failed (`exec format error`) due to building `arm64` image on Mac for `amd64` Cloud Run. Resolved by adding `--platform linux/amd64` to `docker build`.
+*   **Docker Auth:** `docker push` initially failed (`Unauthenticated`) due to `docker-credential-gcloud` not found in PATH. Resolved by prepending SDK `bin` directory to `PATH` for the `docker push` command.
+*   **Database Password Encoding:** Application failed to connect to DB (`ValueError: bad query field`) because password contained special characters (`!`, `?`). Resolved by URL-encoding the password in the `DATABASE_URL` environment variable.
+*   **Browser 403 Forbidden:** Persistent issue accessing deployed services directly via browser (`.run.app` URL) despite correct IAM (`run.invoker`) and successful authenticated `curl` requests. Likely caused by restrictive Organization Policy or similar Google infrastructure behavior preventing direct authenticated browser access. Workaround is using IAP + Load Balancer.
+*   **`gcloud` Components:** Required installation of `beta` and `cloud_sql_proxy` components for certain commands (`gcloud beta sql connect`, `gcloud run services proxy`).
+*   **`psql` Client:** Required installation via Homebrew (`brew install postgresql`) for `gcloud beta sql connect` to function.
 
 ## Post-Deployment Tasks
 
