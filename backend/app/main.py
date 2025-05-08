@@ -32,6 +32,17 @@ from .gemini_api import GeminiAPI
 
 logger = logging.getLogger(__name__)
 
+# Initialize database
+# db = Database()
+
+# Initialize API services
+gemini_api = GeminiAPI(api_key=os.getenv("GEMINI_API_KEY"))
+
+# Initialize routers - Will be fully initialized in the startup event
+github_router = None
+obsidian_router = None  # Will be initialized after DB connection
+google_auth_router = None # Initialize as None globally
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize resources on startup."""
@@ -48,6 +59,18 @@ async def startup_event():
             else:
                 logger.warning("No DATABASE_URL provided. Running with no database support.")
         logger.info("Database initialization complete.")
+        
+        # Initialize the routers with the database connection
+        global github_router, obsidian_router, google_auth_router # Add google_auth_router
+        github_router = GitHubOAuthRouter(db=db_instance)
+        logger.info("GitHub OAuth router initialized successfully.")
+        
+        obsidian_router = ObsidianRouter(db=db_instance, gemini_api=gemini_api)
+        logger.info("Obsidian router initialized successfully.")
+
+        google_auth_router = GoogleAuthRouter(db=db_instance) # Initialize with db_instance
+        logger.info("Google Auth router initialized successfully.")
+        
         # Initialize other services if needed
         logger.info("Application startup sequence finished.")
     except Exception as e:
@@ -67,17 +90,6 @@ logger.info("MCP server integration temporarily disabled")
 
 # Include MCP configuration routes
 logger.info("MCP configuration routes temporarily disabled")
-
-# Initialize database
-# db = Database()
-
-# Initialize API services
-gemini_api = GeminiAPI(api_key=os.getenv("GEMINI_API_KEY"))
-
-# Initialize routers
-github_router = GitHubOAuthRouter()
-obsidian_router = ObsidianRouter(gemini_api=gemini_api)
-google_auth_router = GoogleAuthRouter()
 
 @app.get("/health")
 async def health_check():
@@ -109,6 +121,43 @@ async def get_mcp_config(api_key: str = None):
     
     return config
 
+@app.get("/api/mcp-config/{user_id}")
+async def get_user_mcp_config(user_id: str, api_key: str = None):
+    """Get MCP configuration for a specific user"""
+    if not api_key:
+        raise HTTPException(status_code=400, detail="API key is required")
+    
+    # Initialize database connection
+    db = database.get_db()
+    if not db:
+        db = await database.initialize_db(settings.database_url)
+        if not db:
+            raise HTTPException(status_code=500, detail="Database connection error")
+    
+    # Validate the API key belongs to this user
+    validated_user_id = await db.validate_api_key(api_key)
+    if not validated_user_id or str(validated_user_id) != user_id:
+        raise HTTPException(status_code=403, detail="Invalid API key for this user")
+    
+    # Get base URL from environment or use the request URL
+    base_url = os.getenv("JEAN_API_BASE_URL", "http://localhost:8000")
+    
+    # Create MCP configuration for Claude Desktop
+    config = {
+        "mcpServers": {
+            "jean-memory": {
+                "serverType": "HTTP",
+                "serverUrl": base_url,
+                "headers": {
+                    "X-API-Key": api_key,
+                    "X-User-ID": str(user_id)
+                }
+            }
+        }
+    }
+    
+    return config
+
 # GitHub Integration Routes
 @app.get("/api/integrations/github/oauth/url")
 async def get_github_oauth_url(request: Request, user_id: str = None):
@@ -116,12 +165,18 @@ async def get_github_oauth_url(request: Request, user_id: str = None):
     if not user_id:
         raise HTTPException(status_code=400, detail="User ID is required")
     
+    if github_router is None:
+        raise HTTPException(status_code=503, detail="GitHub OAuth router not initialized yet")
+    
     result = await github_router.get_oauth_url(user_id)
     return result
 
 @app.get("/api/integrations/github/oauth/callback")
 async def handle_github_oauth_callback(code: str, state: str):
     """Handle GitHub OAuth callback"""
+    if github_router is None:
+        raise HTTPException(status_code=503, detail="GitHub OAuth router not initialized yet")
+    
     result = await github_router.handle_oauth_callback(code, state)
     if not result.get("success"):
         return JSONResponse(
@@ -136,18 +191,27 @@ async def handle_github_oauth_callback(code: str, state: str):
 @app.get("/api/integrations/github/status")
 async def check_github_status(user_id: str):
     """Check GitHub connection status"""
+    if github_router is None:
+        raise HTTPException(status_code=503, detail="GitHub OAuth router not initialized yet")
+    
     result = await github_router.check_connection_status(user_id)
     return result
 
 @app.get("/api/integrations/github/data")
 async def get_github_data(user_id: str):
     """Get GitHub repositories and settings"""
+    if github_router is None:
+        raise HTTPException(status_code=503, detail="GitHub OAuth router not initialized yet")
+    
     result = await github_router.get_repositories(user_id)
     return result
 
 @app.post("/api/integrations/github/settings")
 async def save_github_settings(request: Request):
     """Save GitHub integration settings"""
+    if github_router is None:
+        raise HTTPException(status_code=503, detail="GitHub OAuth router not initialized yet")
+    
     data = await request.json()
     user_id = data.get("userId")
     if not user_id:
@@ -162,6 +226,9 @@ async def save_github_settings(request: Request):
 @app.post("/api/integrations/github/sync")
 async def sync_github_repositories(request: Request):
     """Sync GitHub repositories"""
+    if github_router is None:
+        raise HTTPException(status_code=503, detail="GitHub OAuth router not initialized yet")
+    
     data = await request.json()
     user_id = data.get("userId")
     if not user_id:
@@ -173,6 +240,9 @@ async def sync_github_repositories(request: Request):
 @app.post("/api/integrations/github/disconnect")
 async def disconnect_github(request: Request):
     """Disconnect GitHub integration"""
+    if github_router is None:
+        raise HTTPException(status_code=503, detail="GitHub OAuth router not initialized yet")
+    
     data = await request.json()
     user_id = data.get("userId")
     if not user_id:
@@ -185,12 +255,18 @@ async def disconnect_github(request: Request):
 @app.get("/api/integrations/obsidian/status")
 async def check_obsidian_status(user_id: str):
     """Check Obsidian connection status"""
+    if obsidian_router is None:
+        raise HTTPException(status_code=503, detail="Obsidian router not initialized yet")
+    
     result = await obsidian_router.check_connection_status(user_id)
     return result
 
 @app.post("/api/integrations/obsidian/connect")
 async def connect_obsidian_vault(request: Request):
     """Connect to Obsidian vault"""
+    if obsidian_router is None:
+        raise HTTPException(status_code=503, detail="Obsidian router not initialized yet")
+    
     data = await request.json()
     user_id = data.get("userId")
     vault_path = data.get("vaultPath")
@@ -204,6 +280,9 @@ async def connect_obsidian_vault(request: Request):
 @app.post("/api/integrations/obsidian/test")
 async def test_obsidian_connection(request: Request):
     """Test connection to Obsidian vault"""
+    if obsidian_router is None:
+        raise HTTPException(status_code=503, detail="Obsidian router not initialized yet")
+    
     data = await request.json()
     user_id = data.get("userId")
     vault_path = data.get("vaultPath")
@@ -217,12 +296,18 @@ async def test_obsidian_connection(request: Request):
 @app.get("/api/integrations/obsidian/settings")
 async def get_obsidian_settings(user_id: str):
     """Get Obsidian integration settings"""
+    if obsidian_router is None:
+        raise HTTPException(status_code=503, detail="Obsidian router not initialized yet")
+    
     result = await obsidian_router.get_settings(user_id)
     return result
 
 @app.post("/api/integrations/obsidian/settings")
 async def save_obsidian_settings(request: Request):
     """Save Obsidian integration settings"""
+    if obsidian_router is None:
+        raise HTTPException(status_code=503, detail="Obsidian router not initialized yet")
+    
     data = await request.json()
     user_id = data.get("userId")
     if not user_id:
@@ -237,6 +322,9 @@ async def save_obsidian_settings(request: Request):
 @app.post("/api/integrations/obsidian/sync")
 async def sync_obsidian_vault(request: Request):
     """Sync Obsidian vault"""
+    if obsidian_router is None:
+        raise HTTPException(status_code=503, detail="Obsidian router not initialized yet")
+    
     data = await request.json()
     user_id = data.get("userId")
     if not user_id:
@@ -248,6 +336,9 @@ async def sync_obsidian_vault(request: Request):
 @app.post("/api/integrations/obsidian/disconnect")
 async def disconnect_obsidian(request: Request):
     """Disconnect Obsidian integration"""
+    if obsidian_router is None:
+        raise HTTPException(status_code=503, detail="Obsidian router not initialized yet")
+    
     data = await request.json()
     user_id = data.get("userId")
     if not user_id:
@@ -260,6 +351,8 @@ async def disconnect_obsidian(request: Request):
 @app.get("/api/auth/google/url")
 async def get_google_oauth_url(user_id: str = None):
     """Get Google OAuth URL for authorization"""
+    if google_auth_router is None:
+        raise HTTPException(status_code=503, detail="Google Auth router not initialized yet")
     if not user_id:
         raise HTTPException(status_code=400, detail="User ID is required")
     
@@ -269,6 +362,8 @@ async def get_google_oauth_url(user_id: str = None):
 @app.get("/api/auth/google/callback")
 async def handle_google_oauth_callback(code: str, state: str):
     """Handle Google OAuth callback"""
+    if google_auth_router is None:
+        raise HTTPException(status_code=503, detail="Google Auth router not initialized yet")
     result = await google_auth_router.handle_oauth_callback(code, state)
     if not result.get("success"):
         return JSONResponse(
@@ -276,21 +371,23 @@ async def handle_google_oauth_callback(code: str, state: str):
             content={"success": False, "message": result.get("message", "Authentication failed")}
         )
     
-    if "redirect" in result:
-        return RedirectResponse(url=result["redirect"])
-    
-    # Return the result as JSON if no redirect
-    return result
+    # Instead of redirecting, return the JSON result directly
+    # This will be used by the frontend's callback handler
+    return JSONResponse(content=result)
 
 @app.get("/api/auth/google/status")
 async def check_google_status(user_id: str):
     """Check Google connection status"""
+    if google_auth_router is None:
+        raise HTTPException(status_code=503, detail="Google Auth router not initialized yet")
     result = await google_auth_router.check_connection_status(user_id)
     return result
 
 @app.post("/api/auth/google/disconnect")
 async def disconnect_google(request: Request):
     """Disconnect Google integration"""
+    if google_auth_router is None:
+        raise HTTPException(status_code=503, detail="Google Auth router not initialized yet")
     data = await request.json()
     user_id = data.get("userId")
     if not user_id:

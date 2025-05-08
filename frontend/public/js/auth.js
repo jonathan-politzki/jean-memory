@@ -9,7 +9,8 @@ const AuthManager = {
         AVATAR: 'userAvatar',
         IS_LOGGED_IN: 'isLoggedIn',
         SESSION_EXPIRY: 'sessionExpiry',
-        AUTH_PROVIDER: 'authProvider' // New key to track login provider
+        AUTH_PROVIDER: 'authProvider',
+        USER_INFO: 'userInfo' // Added for storing complete user info
     },
 
     // Initialize auth system
@@ -19,14 +20,22 @@ const AuthManager = {
         // Check if session is valid or expired
         this.validateSession();
         
-        // Check URL parameters for social auth immediately
+        // Check for auth-success from redirect
+        const pathname = window.location.pathname;
+        if (pathname.includes('auth-success')) {
+            this.handleAuthSuccess();
+        }
+        
+        // Check URL parameters for social auth
         const params = new URLSearchParams(window.location.search);
-        const authProvider = params.get('auth');
+        const authProvider = params.get('provider');
         if (authProvider) {
             console.log(`Auth provider detected in URL: ${authProvider}`);
             
-            // For demo, bypass the intermediate page and login directly
-            this.handleSocialAuthRedirect(authProvider);
+            // For Google auth, redirect to the backend OAuth endpoint
+            if (authProvider === 'google') {
+                this.startGoogleAuth();
+            }
             
             // Clean up URL regardless of success
             window.history.replaceState({}, document.title, window.location.pathname);
@@ -47,85 +56,194 @@ const AuthManager = {
         });
     },
 
-    // Handle redirect from social auth
-    handleSocialAuthRedirect(provider) {
-        console.log(`Handling social auth redirect for provider: ${provider}`);
+    // Handle auth success from redirect
+    handleAuthSuccess() {
+        console.log("Auth success detected");
         
-        // Show a notification
-        if (typeof window.showNotification === 'function') {
-            window.showNotification(`Signing in with ${provider}...`, 'info');
-        }
+        const params = new URLSearchParams(window.location.search);
+        const provider = params.get('provider');
+        const completed = params.get('completed') === 'true';
         
-        // This would normally verify the auth code with a backend API
-        // For demo, we'll simulate a successful login
-        const demoUsers = {
-            'google': {
-                userId: 'google-demo',
-                apiKey: 'demo-api-key-google123',
-                name: 'Google User',
-                email: 'google@jeanmemory.ai',
-                avatar: 'img/user-avatar.png',
-                provider: 'google'
-            },
-            'github': {
-                userId: 'github-demo',
-                apiKey: 'demo-api-key-github123',
-                name: 'GitHub User',
-                email: 'github@jeanmemory.ai',
-                avatar: '',
-                provider: 'github'
-            },
-            'twitter': {
-                userId: 'twitter-demo',
-                apiKey: 'demo-api-key-twitter123',
-                name: 'Twitter User',
-                email: 'twitter@jeanmemory.ai',
-                avatar: '',
-                provider: 'twitter'
-            }
-        };
+        console.log("Auth Success params:", { provider, completed });
+        console.log("Auth processed flag:", sessionStorage.getItem('auth_success_processed'));
         
-        if (demoUsers[provider]) {
-            console.log(`Logging in user with ${provider} provider`);
+        // Check if we're on the auth-success page after a completed OAuth flow
+        if (completed || localStorage.getItem('auth_completed') === 'true') {
+            console.log("Auth already completed, checking for user info");
+            localStorage.removeItem('auth_completed');
             
-            // Login with the demo user
-            const success = this.login(demoUsers[provider]);
-            
-            if (success) {
-                console.log(`Successfully logged in with ${provider}`);
-                
-                if (typeof window.showNotification === 'function') {
-                    window.showNotification(`Successfully logged in with ${provider}`, 'success');
+            // For testing - if there's user info in localStorage, use it
+            const userInfoString = localStorage.getItem('tempUserInfo');
+            if (userInfoString) {
+                try {
+                    console.log("Found user info in localStorage, processing login");
+                    const userInfo = JSON.parse(userInfoString);
+                    this.storeUserInfo(userInfo);
+                    localStorage.removeItem('tempUserInfo');
+                    
+                    // Redirect to dashboard or MCP config
+                    if (typeof window.showNotification === 'function') {
+                        window.showNotification(`Successfully logged in with ${provider}`, 'success');
+                    }
+                    
+                    // Redirect to mcp-config after a short delay
+                    console.log("Redirecting to MCP config page");
+                    setTimeout(() => {
+                        window.location.href = 'mcp-config.html';
+                    }, 500);
+                    
+                    return true;
+                } catch (e) {
+                    console.error("Error parsing user info:", e);
                 }
-                
-                // Redirect to dashboard after a brief delay
-                setTimeout(() => {
-                    console.log('Redirecting to dashboard...');
-                    window.location.href = 'dashboard.html';
-                }, 500);
-                
-                return true;
             } else {
-                console.error(`Failed to login with ${provider}`);
-                
-                if (typeof window.showNotification === 'function') {
-                    window.showNotification(`Failed to login with ${provider}`, 'error');
-                }
-                
-                return false;
+                console.log("No user info found in localStorage");
+            }
+            
+            // Check if we've already processed this auth success to prevent loops
+            if (sessionStorage.getItem('auth_success_processed') === 'true') {
+                console.log("Auth success already processed, redirecting to dashboard");
+                // Clear the flag and redirect to dashboard
+                sessionStorage.removeItem('auth_success_processed');
+                window.location.href = 'dashboard.html';
+                return true;
             }
         } else {
-            console.error(`Unknown provider: ${provider}`);
-            
-            if (typeof window.showNotification === 'function') {
-                window.showNotification(`Unknown provider: ${provider}`, 'error');
-            }
-            
+            console.log("Auth not yet completed or not on auth success page");
+        }
+        
+        // If we've reached this point and we're on the auth-success page,
+        // but there's no user info, redirect to login
+        if (window.location.pathname.includes('auth-success')) {
+            console.log("On auth-success page but missing user info, redirecting to login");
+            window.location.href = 'login.html';
             return false;
         }
+        
+        return false;
     },
 
-    // Login user and store session data
+    // Start Google OAuth flow
+    async startGoogleAuth() {
+        // Check if we have an HTML-based callback handler
+        const callbackHtmlExists = await fetch('/auth/google/callback.html', { method: 'HEAD' })
+            .then(response => response.ok)
+            .catch(() => false);
+        
+        console.log(`HTML-based callback available: ${callbackHtmlExists}`);
+        
+        // Try multiple backend URLs in order
+        const possibleBackendUrls = [
+            // First try the Docker service name
+            'http://backend:8000',
+            // Then try localhost (for local development outside Docker)
+            'http://localhost:8000',
+            // Finally try the origin (when frontend and backend are on same domain)
+            window.location.origin
+        ];
+
+        // Generate a random user ID for initial auth
+        const tempUserId = 'temp-' + Math.random().toString(36).substring(2, 15);
+        
+        // Try each URL in sequence until one works
+        for (const backendUrl of possibleBackendUrls) {
+            try {
+                console.log(`Trying to connect to backend at: ${backendUrl}`);
+                
+                // Get the OAuth URL from the backend
+                const response = await fetch(`${backendUrl}/api/auth/google/url?user_id=${tempUserId}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.auth_url) {
+                        console.log("Successfully got auth URL, redirecting to Google OAuth");
+                        // Redirect to Google OAuth
+                        window.location.href = data.auth_url;
+                        return; // Exit after successful redirect
+                    } else {
+                        console.warn("Auth URL not provided by backend, trying next URL");
+                    }
+                } else {
+                    console.warn(`Backend at ${backendUrl} returned status: ${response.status}`);
+                }
+            } catch (error) {
+                console.warn(`Failed to connect to ${backendUrl}: ${error.message}`);
+                // Continue to the next URL
+            }
+        }
+        
+        // If we've tried all URLs and none worked, show an error
+        console.error("Could not connect to any backend endpoint");
+        if (typeof window.showNotification === 'function') {
+            window.showNotification(`Failed to start Google authentication: Could not connect to backend server`, 'error');
+        }
+        
+        // Fall back to demo login
+        console.log("Falling back to demo login");
+        this.login({
+            userId: 'google-demo',
+            apiKey: 'demo-api-key-google123',
+            name: 'Google User',
+            email: 'google@jeanmemory.ai',
+            avatar: 'img/user-avatar.png',
+            provider: 'google'
+        });
+    },
+
+    // Store user info from social auth
+    storeUserInfo(userInfo) {
+        if (!userInfo) return false;
+        
+        const { user_id, email, name, picture, api_key } = userInfo;
+        
+        // Store data using all supported formats to ensure compatibility
+        
+        // Format 1: Complete userInfo object (for mcp-config.html)
+        localStorage.setItem('userInfo', JSON.stringify(userInfo));
+        
+        // Format 2: AuthManager's internal format
+        localStorage.setItem(this.KEYS.USER_INFO, JSON.stringify(userInfo));
+        
+        // Format 3: Individual fields for backward compatibility
+        localStorage.setItem(this.KEYS.USER_ID, user_id);
+        localStorage.setItem(this.KEYS.API_KEY, api_key);
+        localStorage.setItem(this.KEYS.USER_NAME, name || 'User');
+        localStorage.setItem(this.KEYS.USER_EMAIL, email || '');
+        localStorage.setItem(this.KEYS.AVATAR, picture || '');
+        localStorage.setItem(this.KEYS.IS_LOGGED_IN, 'true');
+        localStorage.setItem(this.KEYS.AUTH_PROVIDER, 'google');
+        
+        // Format 4: Simplified fields (used by some pages)
+        localStorage.setItem('userId', user_id);
+        localStorage.setItem('apiKey', api_key);
+        localStorage.setItem('userName', name || 'User');
+        localStorage.setItem('userEmail', email || '');
+        localStorage.setItem('userAvatar', picture || '');
+        
+        // Set session expiry (30 days from now)
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + 30);
+        localStorage.setItem(this.KEYS.SESSION_EXPIRY, expiryDate.toISOString());
+        
+        // Set up auth headers for axios
+        if (window.axios) {
+            axios.defaults.headers.common['X-API-Key'] = api_key;
+            axios.defaults.headers.common['X-User-ID'] = user_id;
+        }
+        
+        // Update UI
+        this.updateUI();
+        
+        // Clear any temporary storage that might cause loops
+        localStorage.removeItem('tempUserInfo');
+        localStorage.removeItem('auth_completed');
+        sessionStorage.removeItem('auth_success_processed');
+        
+        console.log('User info stored successfully in all formats', { user_id, name, email });
+        return true;
+    },
+
+    // Use original login function for direct logins (not social auth)
     login(userData) {
         const { userId, apiKey, name, email, avatar, provider } = userData;
         
@@ -176,15 +294,59 @@ const AuthManager = {
         window.location.href = `/login.html${provider ? '?last_provider=' + provider : ''}`;
     },
 
-    // Check if user is logged in
+    // Get user data for MCP config
+    getMCPConfig() {
+        if (!this.isLoggedIn()) return null;
+        
+        // Get user info from localStorage
+        const userInfo = JSON.parse(localStorage.getItem(this.KEYS.USER_INFO) || '{}');
+        const userId = userInfo.user_id || localStorage.getItem(this.KEYS.USER_ID);
+        const apiKey = userInfo.api_key || localStorage.getItem(this.KEYS.API_KEY);
+        
+        if (!userId || !apiKey) {
+            console.error("Missing user ID or API key for MCP config");
+            return null;
+        }
+        
+        // Get base URL from environment or use location origin
+        const baseUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+            ? 'http://localhost:8000' 
+            : window.location.origin;
+        
+        // Generate MCP config
+        return {
+            mcpServers: {
+                "jean-memory": {
+                    serverType: "HTTP",
+                    serverUrl: baseUrl,
+                    headers: {
+                        "X-API-Key": apiKey,
+                        "X-User-ID": userId
+                    }
+                }
+            }
+        };
+    },
+
+    // The rest of the methods remain unchanged
     isLoggedIn() {
         return localStorage.getItem(this.KEYS.IS_LOGGED_IN) === 'true';
     },
 
-    // Get user data
     getUserData() {
         if (!this.isLoggedIn()) return null;
         
+        // First try to get complete user info
+        const userInfoJson = localStorage.getItem(this.KEYS.USER_INFO);
+        if (userInfoJson) {
+            try {
+                return JSON.parse(userInfoJson);
+            } catch (e) {
+                console.error("Error parsing user info:", e);
+            }
+        }
+        
+        // Fallback to individual fields
         return {
             userId: localStorage.getItem(this.KEYS.USER_ID),
             apiKey: localStorage.getItem(this.KEYS.API_KEY),
@@ -195,7 +357,6 @@ const AuthManager = {
         };
     },
 
-    // Validate session (check if expired)
     validateSession() {
         if (!this.isLoggedIn()) return false;
         
@@ -223,8 +384,9 @@ const AuthManager = {
         
         // Set up auth headers for axios if they don't exist
         if (window.axios) {
-            const userId = localStorage.getItem(this.KEYS.USER_ID);
-            const apiKey = localStorage.getItem(this.KEYS.API_KEY);
+            const userInfo = JSON.parse(localStorage.getItem(this.KEYS.USER_INFO) || '{}');
+            const userId = userInfo.user_id || localStorage.getItem(this.KEYS.USER_ID);
+            const apiKey = userInfo.api_key || localStorage.getItem(this.KEYS.API_KEY);
             
             axios.defaults.headers.common['X-API-Key'] = apiKey;
             axios.defaults.headers.common['X-User-ID'] = userId;
@@ -233,7 +395,6 @@ const AuthManager = {
         return true;
     },
 
-    // Update UI based on auth state
     updateUI() {
         if (!document.body) return; // Document not ready yet
         
@@ -245,22 +406,27 @@ const AuthManager = {
         if (userDisplay) {
             if (isLoggedIn && userInfo) {
                 let avatarHTML = '';
+                const userName = userInfo.name || userInfo.userName || 'User';
                 
-                if (userInfo.avatar) {
-                    avatarHTML = `<img src="${userInfo.avatar}" alt="${userInfo.name}" class="user-avatar">`;
+                // Get avatar from userInfo or fall back to previous keys
+                const avatar = userInfo.picture || userInfo.avatar;
+                
+                if (avatar) {
+                    avatarHTML = `<img src="${avatar}" alt="${userName}" class="user-avatar">`;
                 } else {
                     // Use initials as avatar
-                    const initials = userInfo.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                    const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase();
                     avatarHTML = `<div class="user-initials">${initials}</div>`;
                 }
                 
                 userDisplay.innerHTML = `
                     <div class="user-info">
                         ${avatarHTML}
-                        <span class="user-name">${userInfo.name}</span>
+                        <span class="user-name">${userName}</span>
                     </div>
                     <div class="dropdown-menu">
                         <a href="profile.html">Profile</a>
+                        <a href="mcp-config.html">MCP Config</a>
                         <a href="settings.html">Settings</a>
                         <a href="#" id="logout-btn">Logout</a>
                     </div>
@@ -295,7 +461,6 @@ const AuthManager = {
         }
     },
 
-    // Check authentication and redirect if not logged in
     requireAuth() {
         if (!this.isLoggedIn()) {
             // Save current page for redirect after login
@@ -308,28 +473,6 @@ const AuthManager = {
         }
         
         return true;
-    },
-
-    // Get MCP config for user
-    getMCPConfig() {
-        if (!this.isLoggedIn()) return null;
-        
-        const userId = localStorage.getItem(this.KEYS.USER_ID);
-        const apiKey = localStorage.getItem(this.KEYS.API_KEY);
-        
-        // Generate MCP config
-        return {
-            mcpServers: {
-                "jean-memory": {
-                    serverType: "HTTP",
-                    serverUrl: window.location.origin,
-                    headers: {
-                        "X-API-Key": apiKey,
-                        "X-User-ID": userId
-                    }
-                }
-            }
-        };
     }
 };
 

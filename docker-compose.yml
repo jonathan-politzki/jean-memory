@@ -22,25 +22,28 @@ services:
           memory: 1G
 
   backend:
-    build: ./backend
-    image: jean-backend:latest
-    ports:
-      - "8000:8000"
+    build:
+      context: ./backend
+    restart: always
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - JEAN_API_BASE_URL=http://localhost:8000
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
       - LOG_LEVEL=INFO
-      - TENANT_ISOLATION=strict
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_REDIRECT_URI=http://localhost:3005/auth/google/callback
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
+      - DEV_MODE=true
     volumes:
       - ./backend:/app
       - /app/.venv
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    depends_on:
+      - postgres
     networks:
       - jean_network
     deploy:

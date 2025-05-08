@@ -185,21 +185,18 @@
             
             // Social login buttons
             googleLoginBtn.addEventListener('click', function() {
-                // In a real app, we would redirect to Google OAuth
-                // For demo, we'll simulate this with a URL parameter
-                window.location.href = 'login.html?auth=google';
+                // Use the real Google OAuth flow
+                AuthManager.startGoogleAuth();
             });
             
             githubLoginBtn.addEventListener('click', function() {
-                // In a real app, we would redirect to GitHub OAuth
-                // For demo, we'll simulate this with a URL parameter
-                window.location.href = 'login.html?auth=github';
+                // Show coming soon notification for GitHub login
+                showNotification('GitHub login coming soon!', 'info');
             });
             
             twitterLoginBtn.addEventListener('click', function() {
-                // In a real app, we would redirect to Twitter OAuth
-                // For demo, we'll simulate this with a URL parameter
-                window.location.href = 'login.html?auth=twitter';
+                // Show coming soon notification for Twitter login
+                showNotification('Twitter login coming soon!', 'info');
             });
         });
     </script>

@@ -47,6 +47,37 @@ The frontend acts as the primary user-facing entry point for configuring access 
     *   Google OAuth Client ID: This needs to be configured (likely in `public/index.html` or as an environment variable passed to `server.js`) to enable Google Sign-In.
 *   **Docker Deployment:** The `Dockerfile` allows the frontend to be built as a Docker image (`docker build -t jean-frontend .`) and run as a container (`docker run -p <host_port>:<container_port> -e BACKEND_URL=... jean-frontend`).
 
+## Google OAuth Troubleshooting
+
+Setting up Google OAuth for local development (`localhost`) can sometimes be tricky. Here are common issues and solutions based on recent debugging:
+
+1.  **Environment Variables (`.env` file):**
+    *   Crucial Google OAuth credentials (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) and the specific redirect URI (`GOOGLE_REDIRECT_URI`) **must** be defined in a `.env` file located in the **project root directory** (the same directory as `docker-compose.yml`).
+    *   Docker Compose uses this root `.env` file to substitute values into the `environment` section of the `backend` service in `docker-compose.yml`.
+    *   A `.env` file inside the `backend/` directory will *not* be used by Docker Compose for this purpose.
+
+2.  **Redirect URI Mismatch (`redirect_uri_mismatch` Error):**
+    *   This error from Google means the `redirect_uri` sent by the backend during the login initiation does not exactly match any URI listed under "Authorized redirect URIs" for your OAuth Client ID in the Google Cloud Console.
+    *   **Verification Steps:**
+        *   Ensure the `GOOGLE_REDIRECT_URI` in your root `.env` file is set correctly (e.g., `http://localhost:3005/auth/google/callback.html`).
+        *   Ensure this exact same URI is listed in your Google Cloud Console -> Credentials -> Your OAuth Client ID -> Authorized redirect URIs.
+        *   Check the backend logs upon startup or during login initiation for `[AUTH_DEBUG]` messages showing the `redirect_uri` the backend is actually using. They must match.
+        *   Google Cloud Console changes can take several minutes (sometimes longer) to propagate. Wait sufficiently after making changes.
+
+3.  **Account-Specific `redirect_uri_mismatch` / Caching Issues:**
+    *   If the mismatch error *only* occurs for specific Google accounts you've used before, but works fine in Incognito mode or for new accounts, it's likely due to stale browser state or Google-side permissions for that account.
+    *   **Solutions:**
+        *   **Clear Browser Data:** Thoroughly clear cache, cookies, and site data for `localhost`, `google.com`, and `accounts.google.com` in your regular browser.
+        *   **Revoke App Permissions:** Go to the affected Google Account's security settings -> "Third-party apps with account access" (or similar) -> Find your app ("Jean Web Client") -> Remove Access. Then try logging in again (clearing cache first is still recommended).
+
+4.  **Client-Side Callback Handling:**
+    *   The intended flow relies on the client-side JavaScript in `public/auth/google/callback.html` to handle the callback from Google and make the API call to the backend (`/api/auth/google/callback`) to exchange the code.
+    *   The corresponding server-side route (`app.get('/auth/google/callback', ...)`) in `server.js` is deprecated and should remain commented out to avoid duplicate processing of the authorization code.
+
+5.  **Flashing Error on Successful Login:**
+    *   A brief error message might flash during an otherwise successful login. This likely indicates that the client-side JavaScript in `public/auth/google/callback.html` is still making a duplicate (second) call to the backend's callback endpoint after the first successful one. The backend correctly rejects this second call (as a duplicate code), but the frontend JS might momentarily react to the error response.
+    *   **Resolution:** This requires inspecting and refining the JavaScript logic within `public/auth/google/callback.html` to ensure it only attempts to exchange the authorization code with the backend *once* per callback.
+
 ## Considerations from `deployment_and_integration_plan.md`
 
 The overall project plan mentions that the frontend will interact with the deployed Cloud Run backend. This frontend would:

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Successful - JEAN Memory</title>
+    <link rel="stylesheet" href="css/main.css">
+    <script src="js/auth.js"></script>
+    <style>
+        .auth-success-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 2rem;
+        }
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: #10b981;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            color: white;
+            font-size: 2.5rem;
+        }
+        .success-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #111827;
+        }
+        .success-message {
+            font-size: 1.125rem;
+            color: #4b5563;
+            margin-bottom: 2rem;
+            max-width: 600px;
+        }
+        .spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 4px solid rgba(74, 108, 255, 0.2);
+            border-top-color: rgb(74, 108, 255);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .debug-info {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-success-container">
+        <div class="success-icon">✓</div>
+        <h1 class="success-title">Authentication Successful</h1>
+        <p class="success-message">
+            You have successfully signed in. We're preparing your MCP configuration now.
+        </p>
+        <div class="spinner"></div>
+        <p id="redirect-msg">You will be redirected to your MCP configuration in a moment...</p>
+        <div class="debug-info" id="debug-info"></div>
+    </div>
+
+    <script>
+        // Initialize the authentication tracking
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mark this page as already processed to prevent redirect loops
+            sessionStorage.setItem('auth_success_processed', 'true');
+            
+            // Check URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const isCompleted = urlParams.get('completed') === 'true';
+            const provider = urlParams.get('provider') || 'unknown';
+            
+            // Check for user info
+            const userInfo = localStorage.getItem('tempUserInfo');
+            const authCompleted = localStorage.getItem('auth_completed');
+            
+            // Update debug info
+            const debugInfo = document.getElementById('debug-info');
+            if (debugInfo) {
+                debugInfo.textContent = `Provider: ${provider}, Completed: ${isCompleted}, User Info: ${userInfo ? 'Present' : 'Missing'}, Auth Completed Flag: ${authCompleted}`;
+                
+                // Show debug info in dev environments or with a URL parameter
+                if (urlParams.get('debug') === 'true' || window.location.hostname === 'localhost') {
+                    debugInfo.style.display = 'block';
+                }
+            }
+            
+            // If this is not a completed auth flow or we don't have user info, redirect to MCP config after a short delay
+            if (!userInfo && !isCompleted) {
+                console.log("Auth success page loaded without user info and not marked as completed");
+                // Give time for AuthManager to process user info if present
+                setTimeout(() => {
+                    if (!localStorage.getItem('tempUserInfo')) {
+                        console.log("Still no user info after delay, redirecting to login");
+                        window.location.href = 'login.html';
+                    }
+                }, 1500);
+            }
+        });
+    </script>
+</body>
+</html> 

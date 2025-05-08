@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Debugger - JEAN Memory</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #4a6cff;
+            margin-bottom: 30px;
+        }
+        .debug-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+        }
+        .debug-section {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #4a6cff;
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .data-row {
+            margin-bottom: 10px;
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 10px;
+        }
+        .key {
+            font-weight: bold;
+            color: #666;
+        }
+        .value {
+            font-family: monospace;
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+            word-break: break-all;
+        }
+        .empty {
+            color: #999;
+            font-style: italic;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        button {
+            background-color: #4a6cff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #3a5ce0;
+        }
+        .danger {
+            background-color: #e53e3e;
+        }
+        .danger:hover {
+            background-color: #c53030;
+        }
+        pre {
+            background-color: #f3f3f3;
+            padding: 10px;
+            border-radius: 5px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>Auth Debugger</h1>
+    
+    <div class="debug-container">
+        <div class="debug-section">
+            <h2>localStorage Data</h2>
+            <div id="local-storage-data"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h2>sessionStorage Data</h2>
+            <div id="session-storage-data"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h2>URL Query Parameters</h2>
+            <div id="url-params"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h2>Cookies</h2>
+            <div id="cookies"></div>
+        </div>
+    </div>
+    
+    <div class="actions">
+        <button id="refresh-btn">Refresh Data</button>
+        <button id="fix-btn">Fix Auth Data</button>
+        <button id="to-dashboard" onclick="window.location.href='dashboard.html'">Go to Dashboard</button>
+        <button id="to-mcp-config" onclick="window.location.href='mcp-config.html'">Go to MCP Config</button>
+        <button class="danger" id="clear-storage-btn">Clear All Storage</button>
+    </div>
+    
+    <script>
+        function displayData() {
+            // Display localStorage data
+            const localStorageData = document.getElementById('local-storage-data');
+            localStorageData.innerHTML = '';
+            
+            if (localStorage.length === 0) {
+                localStorageData.innerHTML = '<div class="empty">No localStorage data found</div>';
+            } else {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    let value = localStorage.getItem(key);
+                    
+                    try {
+                        // Try to parse JSON values for better display
+                        const parsed = JSON.parse(value);
+                        if (typeof parsed === 'object') {
+                            value = JSON.stringify(parsed, null, 2);
+                        }
+                    } catch (e) {
+                        // Not a JSON value, leave as is
+                    }
+                    
+                    const row = document.createElement('div');
+                    row.className = 'data-row';
+                    row.innerHTML = `
+                        <div class="key">${key}</div>
+                        <pre class="value">${value}</pre>
+                    `;
+                    localStorageData.appendChild(row);
+                }
+            }
+            
+            // Display sessionStorage data
+            const sessionStorageData = document.getElementById('session-storage-data');
+            sessionStorageData.innerHTML = '';
+            
+            if (sessionStorage.length === 0) {
+                sessionStorageData.innerHTML = '<div class="empty">No sessionStorage data found</div>';
+            } else {
+                for (let i = 0; i < sessionStorage.length; i++) {
+                    const key = sessionStorage.key(i);
+                    const value = sessionStorage.getItem(key);
+                    
+                    const row = document.createElement('div');
+                    row.className = 'data-row';
+                    row.innerHTML = `
+                        <div class="key">${key}</div>
+                        <div class="value">${value}</div>
+                    `;
+                    sessionStorageData.appendChild(row);
+                }
+            }
+            
+            // Display URL parameters
+            const urlParams = document.getElementById('url-params');
+            urlParams.innerHTML = '';
+            
+            const params = new URLSearchParams(window.location.search);
+            if (params.toString() === '') {
+                urlParams.innerHTML = '<div class="empty">No URL parameters found</div>';
+            } else {
+                for (const [key, value] of params.entries()) {
+                    const row = document.createElement('div');
+                    row.className = 'data-row';
+                    row.innerHTML = `
+                        <div class="key">${key}</div>
+                        <div class="value">${value}</div>
+                    `;
+                    urlParams.appendChild(row);
+                }
+            }
+            
+            // Display cookies
+            const cookiesElem = document.getElementById('cookies');
+            cookiesElem.innerHTML = '';
+            
+            const cookies = document.cookie.split(';');
+            if (cookies.length === 0 || (cookies.length === 1 && cookies[0] === '')) {
+                cookiesElem.innerHTML = '<div class="empty">No cookies found</div>';
+            } else {
+                for (const cookie of cookies) {
+                    const [key, value] = cookie.trim().split('=');
+                    const row = document.createElement('div');
+                    row.className = 'data-row';
+                    row.innerHTML = `
+                        <div class="key">${key}</div>
+                        <div class="value">${value}</div>
+                    `;
+                    cookiesElem.appendChild(row);
+                }
+            }
+        }
+        
+        // Fix authentication data
+        document.getElementById('fix-btn').addEventListener('click', function() {
+            try {
+                // Try to find user data in various locations
+                let userInfo = null;
+                
+                // Check tempUserInfo first
+                const tempUserInfo = localStorage.getItem('tempUserInfo');
+                if (tempUserInfo) {
+                    userInfo = JSON.parse(tempUserInfo);
+                }
+                
+                // Check existing USER_INFO
+                const existingUserInfo = localStorage.getItem('userInfo');
+                if (!userInfo && existingUserInfo) {
+                    userInfo = JSON.parse(existingUserInfo);
+                }
+                
+                if (userInfo) {
+                    // Set the correct auth data in one place
+                    localStorage.setItem('userInfo', JSON.stringify(userInfo));
+                    
+                    // Also store individual fields for AuthManager to use
+                    localStorage.setItem('userId', userInfo.user_id);
+                    localStorage.setItem('apiKey', userInfo.api_key);
+                    localStorage.setItem('userName', userInfo.name || 'User');
+                    localStorage.setItem('userEmail', userInfo.email || '');
+                    localStorage.setItem('userAvatar', userInfo.picture || '');
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('authProvider', 'google');
+                    
+                    // Clear any auth flags that could cause loops
+                    localStorage.removeItem('auth_completed');
+                    localStorage.removeItem('tempUserInfo');
+                    sessionStorage.removeItem('auth_success_processed');
+                    
+                    alert('Authentication data fixed! Try accessing MCP Config now.');
+                    displayData();
+                } else {
+                    alert('No user information found to fix!');
+                }
+            } catch (error) {
+                alert('Error fixing auth data: ' + error.message);
+            }
+        });
+        
+        // Clear all storage
+        document.getElementById('clear-storage-btn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear all storage data? This will log you out.')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                alert('All storage data cleared!');
+                displayData();
+            }
+        });
+        
+        // Refresh data display
+        document.getElementById('refresh-btn').addEventListener('click', displayData);
+        
+        // Initial display
+        document.addEventListener('DOMContentLoaded', displayData);
+        
+        // Fix auth data
+        function fixAuth() {
+            // Clear all authentication data
+            const authKeys = [
+                'userInfo', 'tempUserInfo', 'userId', 'apiKey', 
+                'userName', 'userEmail', 'userAvatar', 'isLoggedIn', 
+                'authProvider', 'sessionExpiry', 'auth_completed', 
+                'using_demo_mode'
+            ];
+            
+            // Clear localStorage
+            authKeys.forEach(key => localStorage.removeItem(key));
+            
+            // Clear sessionStorage
+            sessionStorage.removeItem('auth_success_processed');
+            sessionStorage.removeItem('redirectAfterLogin');
+            
+            // Redirect to login page
+            window.location.href = '/login.html?cleared=true';
+        }
+        
+        // Button click handlers
+        document.getElementById('fix-btn').addEventListener('click', fixAuth);
+    </script>
+</body>
+</html> 

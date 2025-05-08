@@ -19,9 +19,69 @@ class GitHubOAuthRouter:
         self.token_url = "https://github.com/login/oauth/access_token"
         self.api_base = "https://api.github.com"
         
+        # Development mode flag - set to True to use mock database operations
+        self.dev_mode = os.getenv("DEV_MODE", "true").lower() == "true"
+        
+        # State storage for development mode
+        self.dev_states = {}
+        self.dev_connections = {}
+        
         # Ensure environment variables are set
         if not self.client_id or not self.client_secret:
             logger.warning("GitHub OAuth credentials not set. Integration will not work properly.")
+            logger.warning("Using development mode: {}".format(self.dev_mode))
+    
+    async def execute(self, query, *args):
+        """Execute database query with fallback to dev mode"""
+        if self.dev_mode:
+            logger.debug(f"DEV MODE - Mocking DB execute: {query}")
+            return None
+        try:
+            return await self.db.execute(query, *args)
+        except Exception as e:
+            logger.error(f"Database error: {e}")
+            logger.warning(f"Falling back to development mode")
+            self.dev_mode = True
+            return None
+    
+    async def fetchrow(self, query, *args):
+        """Fetch single row with fallback to dev mode"""
+        if self.dev_mode:
+            logger.debug(f"DEV MODE - Mocking DB fetchrow: {query}")
+            # Mock responses for common queries
+            if "github_oauth_states" in query and len(args) >= 2:
+                user_id, state = args[0], args[1]
+                stored_state = self.dev_states.get(user_id)
+                if stored_state == state:
+                    return {"user_id": user_id, "state": state}
+            elif "github_connections" in query and len(args) >= 1:
+                user_id = args[0]
+                if user_id in self.dev_connections:
+                    return self.dev_connections[user_id]
+            return None
+        try:
+            return await self.db.fetchrow(query, *args)
+        except Exception as e:
+            logger.error(f"Database error: {e}")
+            logger.warning(f"Falling back to development mode")
+            self.dev_mode = True
+            return None
+    
+    async def fetch(self, query, *args):
+        """Fetch multiple rows with fallback to dev mode"""
+        if self.dev_mode:
+            logger.debug(f"DEV MODE - Mocking DB fetch: {query}")
+            # Mock responses for common queries
+            if "github_synced_repos" in query and len(args) >= 1:
+                return []
+            return []
+        try:
+            return await self.db.fetch(query, *args)
+        except Exception as e:
+            logger.error(f"Database error: {e}")
+            logger.warning(f"Falling back to development mode")
+            self.dev_mode = True
+            return []
     
     async def get_oauth_url(self, user_id: str) -> Dict[str, Any]:
         """
@@ -34,10 +94,13 @@ class GitHubOAuthRouter:
         state = f"{user_id}:{uuid.uuid4().hex}"
         
         # Store state in database for verification during callback
-        await self.db.execute(
-            "INSERT INTO github_oauth_states (user_id, state, created_at) VALUES ($1, $2, $3)",
-            user_id, state, datetime.now()
-        )
+        if self.dev_mode:
+            self.dev_states[user_id] = state
+        else:
+            await self.execute(
+                "INSERT INTO github_oauth_states (user_id, state, created_at) VALUES ($1, $2, $3)",
+                user_id, state, datetime.now()
+            )
         
         # Build OAuth URL
         oauth_url = f"{self.oauth_url}?client_id={self.client_id}&redirect_uri={self.redirect_uri}&scope=repo&state={state}"
@@ -59,69 +122,85 @@ class GitHubOAuthRouter:
         user_id = state_parts[0]
         
         # Check if state exists in database
-        state_record = await self.db.fetchrow(
+        state_record = await self.fetchrow(
             "SELECT * FROM github_oauth_states WHERE user_id = $1 AND state = $2",
             user_id, state
         )
         
-        if not state_record:
+        if not state_record and not (self.dev_mode and self.dev_states.get(user_id) == state):
             return {"success": False, "message": "Invalid or expired state"}
         
         # Exchange code for access token
-        async with aiohttp.ClientSession() as session:
-            headers = {"Accept": "application/json"}
-            data = {
-                "client_id": self.client_id,
-                "client_secret": self.client_secret,
-                "code": code,
-                "redirect_uri": self.redirect_uri,
-                "state": state
-            }
-            
-            async with session.post(self.token_url, headers=headers, data=data) as response:
-                if response.status != 200:
-                    return {"success": False, "message": "Failed to exchange code for access token"}
-                
-                response_data = await response.json()
-                
-                if "error" in response_data:
-                    return {"success": False, "message": response_data.get("error_description", "Unknown error")}
-                
-                access_token = response_data.get("access_token")
-                token_type = response_data.get("token_type", "bearer")
-                scope = response_data.get("scope", "")
-                
-                # Store access token in database
-                await self.db.execute(
-                    """
-                    INSERT INTO github_connections (user_id, access_token, token_type, scope, created_at, updated_at)
-                    VALUES ($1, $2, $3, $4, $5, $6)
-                    ON CONFLICT (user_id) 
-                    DO UPDATE SET access_token = $2, token_type = $3, scope = $4, updated_at = $6
-                    """,
-                    user_id, access_token, token_type, scope, datetime.now(), datetime.now()
-                )
-                
-                # Clean up state
-                await self.db.execute(
-                    "DELETE FROM github_oauth_states WHERE user_id = $1",
-                    user_id
-                )
-                
-                # Fetch user information
-                user_info = await self._fetch_github_user(access_token)
-                
-                return {
-                    "success": True,
-                    "message": "GitHub connected successfully",
-                    "user_info": user_info
+        try:
+            async with aiohttp.ClientSession() as session:
+                headers = {"Accept": "application/json"}
+                data = {
+                    "client_id": self.client_id,
+                    "client_secret": self.client_secret,
+                    "code": code,
+                    "redirect_uri": self.redirect_uri,
+                    "state": state
                 }
+                
+                async with session.post(self.token_url, headers=headers, data=data) as response:
+                    if response.status != 200:
+                        return {"success": False, "message": "Failed to exchange code for access token"}
+                    
+                    response_data = await response.json()
+                    
+                    if "error" in response_data:
+                        return {"success": False, "message": response_data.get("error_description", "Unknown error")}
+                    
+                    access_token = response_data.get("access_token")
+                    token_type = response_data.get("token_type", "bearer")
+                    scope = response_data.get("scope", "")
+                    
+                    # Store access token in database
+                    if self.dev_mode:
+                        self.dev_connections[user_id] = {
+                            "user_id": user_id,
+                            "access_token": access_token,
+                            "token_type": token_type,
+                            "scope": scope
+                        }
+                    else:
+                        await self.execute(
+                            """
+                            INSERT INTO github_connections (user_id, access_token, token_type, scope, created_at, updated_at)
+                            VALUES ($1, $2, $3, $4, $5, $6)
+                            ON CONFLICT (user_id) 
+                            DO UPDATE SET access_token = $2, token_type = $3, scope = $4, updated_at = $6
+                            """,
+                            user_id, access_token, token_type, scope, datetime.now(), datetime.now()
+                        )
+                    
+                    # Clean up state
+                    if self.dev_mode:
+                        if user_id in self.dev_states:
+                            del self.dev_states[user_id]
+                    else:
+                        await self.execute(
+                            "DELETE FROM github_oauth_states WHERE user_id = $1",
+                            user_id
+                        )
+                    
+                    # Fetch user information
+                    user_info = await self._fetch_github_user(access_token)
+                    
+                    return {
+                        "success": True,
+                        "message": "GitHub connected successfully",
+                        "user_info": user_info
+                    }
+        except Exception as e:
+            logger.error(f"Error during GitHub OAuth: {e}")
+            return {"success": False, "message": f"Authentication error: {str(e)}"}
     
     async def check_connection_status(self, user_id: str) -> Dict[str, Any]:
         """
         Check if user has GitHub connected and token is valid
         """
-        connection = await self.db.fetchrow(
+        connection = await self.fetchrow(
             "SELECT * FROM github_connections WHERE user_id = $1",
             user_id
         )
@@ -140,7 +219,7 @@ class GitHubOAuthRouter:
             }
         
         # Get settings for the connection
-        settings = await self.db.fetchrow(
+        settings = await self.fetchrow(
             "SELECT * FROM github_settings WHERE user_id = $1",
             user_id
         )
@@ -156,7 +235,7 @@ class GitHubOAuthRouter:
         Save GitHub integration settings
         """
         # Check if user has GitHub connected
-        connection = await self.db.fetchrow(
+        connection = await self.fetchrow(
             "SELECT * FROM github_connections WHERE user_id = $1",
             user_id
         )
@@ -166,7 +245,7 @@ class GitHubOAuthRouter:
         
         # Save settings
         settings_json = json.dumps(settings)
-        await self.db.execute(
+        await self.execute(
             """
             INSERT INTO github_settings (user_id, settings, created_at, updated_at)
             VALUES ($1, $2, $3, $4)
@@ -182,7 +261,7 @@ class GitHubOAuthRouter:
         """
         Get GitHub repositories for the user
         """
-        connection = await self.db.fetchrow(
+        connection = await self.fetchrow(
             "SELECT * FROM github_connections WHERE user_id = $1",
             user_id
         )
@@ -196,13 +275,13 @@ class GitHubOAuthRouter:
             return {"success": False, "message": "Failed to fetch repositories"}
         
         # Get settings
-        settings = await self.db.fetchrow(
+        settings = await self.fetchrow(
             "SELECT * FROM github_settings WHERE user_id = $1",
             user_id
         )
         
         # Get list of synchronized repositories
-        synced_repos = await self.db.fetch(
+        synced_repos = await self.fetch(
             "SELECT * FROM github_synced_repos WHERE user_id = $1",
             user_id
         )
@@ -220,7 +299,7 @@ class GitHubOAuthRouter:
         """
         Sync GitHub repositories for the user
         """
-        connection = await self.db.fetchrow(
+        connection = await self.fetchrow(
             "SELECT * FROM github_connections WHERE user_id = $1",
             user_id
         )
@@ -229,7 +308,7 @@ class GitHubOAuthRouter:
             return {"success": False, "message": "GitHub not connected"}
         
         # Get settings to determine which repos to sync
-        settings = await self.db.fetchrow(
+        settings = await self.fetchrow(
             "SELECT * FROM github_settings WHERE user_id = $1",
             user_id
         )
@@ -266,7 +345,7 @@ class GitHubOAuthRouter:
                 await self._process_repository_contents(user_id, repo_info, contents, access_token)
                 
                 # Mark repository as synced
-                await self.db.execute(
+                await self.execute(
                     """
                     INSERT INTO github_synced_repos (user_id, repo_id, repo_name, last_synced)
                     VALUES ($1, $2, $3, $4)
@@ -287,25 +366,25 @@ class GitHubOAuthRouter:
         Disconnect GitHub integration
         """
         # Remove GitHub connection
-        await self.db.execute(
+        await self.execute(
             "DELETE FROM github_connections WHERE user_id = $1",
             user_id
         )
         
         # Remove settings
-        await self.db.execute(
+        await self.execute(
             "DELETE FROM github_settings WHERE user_id = $1",
             user_id
         )
         
         # Remove synced repositories
-        await self.db.execute(
+        await self.execute(
             "DELETE FROM github_synced_repos WHERE user_id = $1",
             user_id
         )
         
         # Clean up memory entries from GitHub
-        await self.db.execute(
+        await self.execute(
             "DELETE FROM memory_entries WHERE user_id = $1 AND source = 'github'",
             user_id
         )
@@ -452,7 +531,7 @@ class GitHubOAuthRouter:
                     if content:
                         # Store content in memory database
                         memory_id = str(uuid.uuid4())
-                        await self.db.execute(
+                        await self.execute(
                             """
                             INSERT INTO memory_entries (
                                 id, user_id, title, content, source, source_id, 

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Auth Callback - JEAN Memory</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            padding: 20px;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #f9fafb;
+        }
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 70vh;
+        }
+        .spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 4px solid rgba(74, 108, 255, 0.2);
+            border-top-color: rgb(74, 108, 255);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .message {
+            font-size: 1.1rem;
+            color: #4a5568;
+            margin-bottom: 2rem;
+        }
+        .error {
+            color: #e53e3e;
+            background-color: #fde8e8;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        .success-message {
+            margin-top: 2rem;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            background-color: #f0fff4;
+            border: 1px solid #c6f6d5;
+            color: #22543d;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #4a6cff;
+            border-radius: 50%;
+            background-color: #ebf4ff;
+        }
+        #debug-toggle {
+            margin-top: 2rem;
+            background: none;
+            border: none;
+            color: #718096;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        #debug-output {
+            display: none;
+            text-align: left;
+            background-color: #f7fafc;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            max-width: 100%;
+            margin-top: 1rem;
+            border: 1px solid #e2e8f0;
+        }
+        pre {
+            white-space: pre-wrap;
+            font-size: 0.85rem;
+        }
+        .progress-container {
+            width: 100%;
+            max-width: 300px;
+            margin: 2rem auto;
+        }
+        .progress-bar {
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #4a6cff;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        .progress-text {
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <div class="logo">J</div>
+        <h2>JEAN Memory Authentication</h2>
+        <div class="spinner"></div>
+        <p class="message">Processing your Google Sign-In...</p>
+        
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+            </div>
+            <div id="progress-text" class="progress-text">Connecting to backend...</div>
+        </div>
+        
+        <button id="debug-toggle" onclick="toggleDebug()">Show technical details</button>
+        <div id="debug-output"></div>
+    </div>
+
+    <script>
+        // Toggle debug info display
+        function toggleDebug() {
+            const debugOutput = document.getElementById('debug-output');
+            const debugToggle = document.getElementById('debug-toggle');
+            
+            if (debugOutput.style.display === 'none' || !debugOutput.style.display) {
+                debugOutput.style.display = 'block';
+                debugToggle.textContent = 'Hide technical details';
+            } else {
+                debugOutput.style.display = 'none';
+                debugToggle.textContent = 'Show technical details';
+            }
+        }
+        
+        // Update progress bar
+        function updateProgress(percent, text) {
+            document.getElementById('progress-fill').style.width = `${percent}%`;
+            if (text) {
+                document.getElementById('progress-text').textContent = text;
+            }
+        }
+        
+        // Add log to debug output
+        function addLog(message, isError = false) {
+            const debugOutput = document.getElementById('debug-output');
+            const logElement = document.createElement('p');
+            logElement.innerHTML = message;
+            if (isError) {
+                logElement.style.color = '#e53e3e';
+            }
+            debugOutput.appendChild(logElement);
+            console.log(message);
+        }
+        
+        // Parse query parameters from URL
+        function getQueryParams() {
+            const params = {};
+            const searchParams = new URLSearchParams(window.location.search);
+            for (const [key, value] of searchParams.entries()) {
+                params[key] = value;
+            }
+            return params;
+        }
+
+        // Process the auth callback
+        async function processCallback() {
+            try {
+                updateProgress(10, "Reading authentication details...");
+                const params = getQueryParams();
+                const { code, state } = params;
+                
+                addLog(`Processing auth callback with code: ${code?.substring(0, 10)}... and state: ${state}`);
+                
+                if (!code || !state) {
+                    throw new Error("Missing required auth parameters");
+                }
+                
+                updateProgress(20, "Looking for backend servers...");
+                
+                // Try multiple backend URLs in order
+                const possibleBackendUrls = [
+                    // First try the Docker service name
+                    'http://backend:8000',
+                    // Then try localhost with port 8000
+                    'http://localhost:8000',
+                    // Then try the API endpoint directly
+                    '/api',
+                    // Finally try the window origin
+                    `${window.location.origin}`
+                ];
+                
+                let successful = false;
+                let responseData = null;
+                
+                // Try each URL in sequence
+                for (const baseUrl of possibleBackendUrls) {
+                    if (successful) break;
+                    
+                    try {
+                        const callbackUrl = baseUrl.endsWith('/api') ? 
+                            `${baseUrl}/auth/google/callback` :
+                            `${baseUrl}/api/auth/google/callback`;
+                        
+                        updateProgress(40, `Connecting to ${baseUrl.replace('http://', '')}...`);
+                        addLog(`Trying backend at: ${callbackUrl}`);
+                        
+                        // Use a timeout to prevent hanging requests
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 5000);
+                        
+                        // Forward the auth code to the backend
+                        const response = await fetch(`${callbackUrl}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`, {
+                            signal: controller.signal
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (response.ok) {
+                            responseData = await response.json();
+                            successful = true;
+                            updateProgress(60, "Authentication successful!");
+                            addLog(`Successfully connected to ${callbackUrl}`, false);
+                        }
+                    } catch (e) {
+                        addLog(`Failed to connect to ${baseUrl}: ${e.message}`, true);
+                    }
+                }
+                
+                updateProgress(70, "Preparing user session...");
+                
+                if (!successful) {
+                    addLog("Could not connect to any backend instance, using demo mode", true);
+                }
+                
+                // If backend connection failed, use demo data in development
+                let userInfo;
+                let isDemoUser = false;
+                
+                if (successful && responseData.success) {
+                    userInfo = responseData.user_info;
+                    addLog("Using real user data from backend", false);
+                    
+                    // Explicitly check if this is the real user or a demo fallback from backend
+                    if (userInfo.user_id === 'demo-user-1' && userInfo.api_key === 'demo-api-key-123') {
+                        isDemoUser = true;
+                        addLog("Backend returned demo user (development mode)", false);
+                    }
+                } else {
+                    // Use demo user info for development or when backend fails
+                    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                        addLog("Using demo user data for development", false);
+                        userInfo = {
+                            user_id: 'demo-user-1',
+                            email: 'demo@example.com',
+                            name: 'Demo User',
+                            picture: '/img/user-avatar.png',
+                            api_key: 'demo-api-key-123'
+                        };
+                        isDemoUser = true;
+                    } else {
+                        throw new Error("Authentication failed and demo mode is only available in development");
+                    }
+                }
+                
+                updateProgress(80, isDemoUser ? "Using demo credentials..." : "Storing user credentials...");
+                
+                // Mark this as demo mode in localStorage if applicable
+                if (isDemoUser) {
+                    localStorage.setItem('using_demo_mode', 'true');
+                } else {
+                    localStorage.removeItem('using_demo_mode');
+                }
+                
+                // Store in multiple formats for compatibility
+                localStorage.setItem('tempUserInfo', JSON.stringify(userInfo));
+                localStorage.setItem('userInfo', JSON.stringify(userInfo));
+                localStorage.setItem('userId', userInfo.user_id);
+                localStorage.setItem('apiKey', userInfo.api_key);
+                localStorage.setItem('userName', userInfo.name || 'User');
+                localStorage.setItem('userEmail', userInfo.email || '');
+                localStorage.setItem('userAvatar', userInfo.picture || '');
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('authProvider', 'google');
+                
+                // Set auth flags
+                localStorage.setItem('auth_completed', 'true');
+                sessionStorage.setItem('auth_success_processed', 'true');
+                
+                updateProgress(100, "Login complete! Redirecting...");
+                
+                // Show success message
+                document.querySelector('.loading').innerHTML += `
+                    <div class="success-message">
+                        <h3>✅ Authentication Successful!</h3>
+                        <p>Welcome, ${userInfo.name || 'User'}!</p>
+                        <p>Redirecting to dashboard...</p>
+                    </div>
+                `;
+                
+                // Redirect to success page
+                setTimeout(() => {
+                    window.location.href = '/dashboard.html';
+                }, 2000);
+                
+            } catch (error) {
+                console.error("Auth callback error:", error);
+                updateProgress(100, "Authentication failed");
+                
+                const loadingDiv = document.querySelector('.loading');
+                loadingDiv.querySelector('.spinner').style.display = 'none';
+                loadingDiv.querySelector('.message').style.display = 'none';
+                loadingDiv.querySelector('.progress-container').style.display = 'none';
+                
+                loadingDiv.innerHTML += `
+                    <div class="error">
+                        <strong>Error:</strong> ${error.message}
+                    </div>
+                    <p>Please try again or use the <a href="/auth-debug.html">debugging tool</a>.</p>
+                    <p><a href="/">Return to Home</a></p>
+                `;
+                
+                // Show debug info automatically on error
+                document.getElementById('debug-output').style.display = 'block';
+                document.getElementById('debug-toggle').textContent = 'Hide technical details';
+                
+                // Try to save demo user info for testing
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    console.log("DEVELOPMENT MODE: Using demo user");
+                    const demoUser = {
+                        user_id: 'demo-user-1',
+                        email: 'demo@example.com',
+                        name: 'Demo User',
+                        picture: '/img/user-avatar.png',
+                        api_key: 'demo-api-key-123'
+                    };
+                    
+                    localStorage.setItem('tempUserInfo', JSON.stringify(demoUser));
+                    localStorage.setItem('userInfo', JSON.stringify(demoUser));
+                    localStorage.setItem('userId', demoUser.user_id);
+                    localStorage.setItem('apiKey', demoUser.api_key);
+                    localStorage.setItem('userName', demoUser.name);
+                    localStorage.setItem('userEmail', demoUser.email);
+                    localStorage.setItem('userAvatar', demoUser.picture);
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('auth_completed', 'true');
+                    sessionStorage.setItem('auth_success_processed', 'true');
+                    
+                    // Redirect after a short delay
+                    loadingDiv.innerHTML += `
+                        <div class="success-message" style="margin-top: 20px;">
+                            <p>Using demo user for development</p>
+                            <p>Redirecting to dashboard in 3 seconds...</p>
+                        </div>
+                    `;
+                    
+                    setTimeout(() => {
+                        window.location.href = '/dashboard.html';
+                    }, 3000);
+                }
+            }
+        }
+
+        // Process the callback when page loads
+        window.onload = processCallback;
+    </script>
+</body>
+</html> 

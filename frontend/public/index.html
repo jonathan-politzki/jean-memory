@@ -246,15 +246,15 @@
             // Google login
             document.getElementById('google-login').addEventListener('click', function() {
                 showNotification('Signing in with Google...', 'info');
-                // Direct login without intermediate page
-                AuthManager.handleSocialAuthRedirect('google');
+                // Use the new Google auth flow
+                AuthManager.startGoogleAuth();
             });
             
             // GitHub login
             document.getElementById('github-login').addEventListener('click', function() {
                 showNotification('Signing in with GitHub...', 'info');
-                // Direct login without intermediate page
-                AuthManager.handleSocialAuthRedirect('github');
+                // For GitHub, redirect to a "coming soon" placeholder for now
+                showNotification('GitHub login is coming soon!', 'info');
             });
             
             // Email login
@@ -269,6 +269,12 @@
             const params = new URLSearchParams(window.location.search);
             if (params.get('logout') === 'true') {
                 showNotification('You have been logged out successfully.', 'success');
+            }
+            if (params.get('auth_error') === 'true') {
+                showNotification('Authentication failed. Please try again or use demo login.', 'error');
+            }
+            if (params.get('error') === 'auth_failed') {
+                showNotification('Authentication failed. Please try again.', 'error');
             }
         });
     </script>

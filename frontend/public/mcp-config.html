@@ -119,6 +119,49 @@
         .user-info-alert p strong {
             color: #3730a3;
         }
+        
+        /* Add the display control classes */
+        .d-none {
+            display: none !important;
+        }
+        
+        .mb-4 {
+            margin-bottom: 1.5rem !important;
+        }
+        
+        .mb-1 {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .mb-0 {
+            margin-bottom: 0 !important;
+        }
+        
+        .mt-4 {
+            margin-top: 1.5rem !important;
+        }
+        
+        .mt-2 {
+            margin-top: 0.5rem !important;
+        }
+        
+        .text-center {
+            text-align: center !important;
+        }
+        
+        .warning-banner {
+            background-color: #fffbeb;
+            border: 1px solid #fef3c7;
+            color: #92400e;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .warning-banner h4 {
+            color: #b45309;
+            margin-bottom: 0.5rem;
+        }
     </style>
 </head>
 
@@ -153,6 +196,17 @@
                 <p class="page-lead">
                     Use the configurations below to connect JEAN Memory to your AI tools.
                 </p>
+                
+                <div id="demo-mode-warning" class="warning-banner d-none">
+                    <h4><i class="ti ti-alert-triangle"></i> Demo Mode Active</h4>
+                    <p>You are viewing demo configuration data. In a real environment, this would be your actual API key and server configuration.</p>
+                    <p>To get a real API key, please complete the authentication process with Google.</p>
+                    <div class="mt-3">
+                        <button onclick="clearAuthAndRedirect()" class="btn btn-primary">
+                            <i class="ti ti-refresh"></i> Clear Auth Data & Try Again
+                        </button>
+                    </div>
+                </div>
 
                 <div id="loading-mcp">
                     <div class="spinner"></div>
@@ -274,64 +328,163 @@
                 console.error('Failed to copy: ', err);
             });
         }
+        
+        function clearAuthAndRedirect() {
+            // Clear all authentication data
+            const authKeys = [
+                'userInfo', 'tempUserInfo', 'userId', 'apiKey', 
+                'userName', 'userEmail', 'userAvatar', 'isLoggedIn', 
+                'authProvider', 'sessionExpiry', 'auth_completed', 
+                'using_demo_mode'
+            ];
+            
+            // Clear localStorage
+            authKeys.forEach(key => localStorage.removeItem(key));
+            
+            // Clear sessionStorage
+            sessionStorage.removeItem('auth_success_processed');
+            sessionStorage.removeItem('redirectAfterLogin');
+            
+            // Show notification
+            if (typeof window.showNotification === 'function') {
+                window.showNotification('Authentication data cleared. Redirecting to login...', 'info');
+            }
+            
+            // Redirect to login page after a short delay
+            setTimeout(() => {
+                window.location.href = '/login.html?cleared=true';
+            }, 500);
+        }
+        
+        function createDemoConfig(userId, apiKey) {
+            // Create demo MCP configuration
+            return {
+                mcpServers: {
+                    "jean-memory": {
+                        serverType: "HTTP",
+                        serverUrl: "http://localhost:8000",
+                        headers: {
+                            "X-API-Key": apiKey,
+                            "X-User-ID": userId
+                        }
+                    }
+                }
+            };
+        }
 
         async function fetchMCPConfig() {
             const loadingDiv = document.getElementById('loading-mcp');
             const contentDiv = document.getElementById('content-mcp');
             const errorDiv = document.getElementById('error-message-mcp');
             const errorTextP = document.getElementById('error-text');
+            const demoWarningDiv = document.getElementById('demo-mode-warning');
             
             try {
-                const userId = getQueryParam('jean_user_id');
-                const apiKey = getQueryParam('jean_api_key');
+                // Get user info with multiple fallbacks to handle different storage methods
+                let userInfo;
+                let isDemo = false;
                 
-                if (!userId || !apiKey) {
-                    throw new Error('Missing User ID or API Key in URL parameters. Please ensure you accessed this page via a valid link.');
+                // First try AuthManager's retrieval method
+                const authManager = window.AuthManager;
+                if (authManager && typeof authManager.getUserData === 'function') {
+                    userInfo = authManager.getUserData();
+                    console.log('Got user info from AuthManager:', userInfo);
                 }
                 
-                const response = await fetch('/mcp', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-API-Key': apiKey,
-                        'X-User-ID': userId
-                    },
-                    body: JSON.stringify({
-                        jsonrpc: '2.0',
-                        method: 'call_tool',
-                        params: {
-                            name: 'get_mcp_config',
-                            arguments: {}
-                        },
-                        id: Date.now()
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
+                // If that doesn't work, try individual storage fields
+                if (!userInfo || !userInfo.user_id || !userInfo.api_key) {
+                    // Try all possible localStorage keys
+                    const tempUserInfo = localStorage.getItem('tempUserInfo');
+                    const userInfoStr = localStorage.getItem('userInfo');
+                    const authUserInfo = localStorage.getItem('USER_INFO');
+                    
+                    // Try to parse from most specific to least
+                    if (tempUserInfo) {
+                        userInfo = JSON.parse(tempUserInfo);
+                        console.log('Got user info from tempUserInfo');
+                    } else if (userInfoStr) {
+                        userInfo = JSON.parse(userInfoStr);
+                        console.log('Got user info from userInfo');
+                    } else if (authUserInfo) {
+                        userInfo = JSON.parse(authUserInfo);
+                        console.log('Got user info from USER_INFO');
+                    } else {
+                        // Try to construct from individual fields
+                        const userId = localStorage.getItem('userId');
+                        const apiKey = localStorage.getItem('apiKey');
+                        
+                        if (userId && apiKey) {
+                            userInfo = {
+                                user_id: userId,
+                                api_key: apiKey,
+                                email: localStorage.getItem('userEmail') || '',
+                                name: localStorage.getItem('userName') || 'User'
+                            };
+                            console.log('Constructed user info from individual fields');
+                        }
+                    }
                 }
                 
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(`API error: ${data.error.message || JSON.stringify(data.error)}`);
+                if (!userInfo || !userInfo.user_id || !userInfo.api_key) {
+                    throw new Error('Authentication information not found. Click <a href="auth-debug.html">here</a> to debug or <a href="/">here</a> to sign in again.');
                 }
                 
-                const mcpData = data.result && data.result.result ? data.result.result : data.result;
+                const userId = userInfo.user_id;
+                const apiKey = userInfo.api_key;
                 
-                if (!mcpData) {
-                     throw new Error('Invalid API response format for MCP data.');
+                // Check if this is demo data
+                if (userId === 'demo-user-1' && apiKey === 'demo-api-key-123') {
+                    isDemo = true;
+                    console.log('Using demo user data');
+                    
+                    // Show demo warning banner
+                    demoWarningDiv.classList.remove('d-none');
                 }
-
-                const claudeConfig = mcpData.mcpServers || mcpData.claude_desktop || mcpData; 
-                const ideConfig = mcpData.mcpServers || mcpData.ide || mcpData;
                 
+                // Also check the explicit demo mode flag
+                if (localStorage.getItem('using_demo_mode') === 'true') {
+                    isDemo = true;
+                    console.log('Demo mode flag is set');
+                    demoWarningDiv.classList.remove('d-none');
+                }
+                
+                let mcpConfig;
+                
+                // Try to fetch from backend only if not in demo mode
+                if (!isDemo) {
+                    try {
+                        // Fetch the MCP configuration directly from the backend
+                        const backendUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
+                            ? 'http://localhost:8000' 
+                            : window.location.origin;
+                        
+                        console.log(`Fetching MCP config from ${backendUrl}/api/mcp-config/${userId}?api_key=${apiKey}`);
+                        const response = await fetch(`${backendUrl}/api/mcp-config/${userId}?api_key=${apiKey}`);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        
+                        mcpConfig = await response.json();
+                        console.log('MCP Config received from backend:', mcpConfig);
+                    } catch (error) {
+                        console.warn('Error fetching from backend, using generated config:', error);
+                        mcpConfig = createDemoConfig(userId, apiKey);
+                    }
+                } else {
+                    // For demo users, always create a demo config
+                    mcpConfig = createDemoConfig(userId, apiKey);
+                    console.log('Created demo MCP config:', mcpConfig);
+                }
+                
+                // Display user info
                 document.getElementById('user-id').textContent = userId;
-                document.getElementById('user-email').textContent = mcpData.email || 'N/A (not provided by API)'; 
+                document.getElementById('user-email').textContent = userInfo.email || 'N/A';
                 document.getElementById('api-key').textContent = apiKey;
                 
-                document.getElementById('claude-config').textContent = JSON.stringify(claudeConfig, null, 2);
-                document.getElementById('ide-config').textContent = JSON.stringify(ideConfig, null, 2);
+                // Format and display MCP configs
+                document.getElementById('claude-config').textContent = JSON.stringify(mcpConfig, null, 2);
+                document.getElementById('ide-config').textContent = JSON.stringify(mcpConfig, null, 2);
                 
                 loadingDiv.classList.add('d-none');
                 contentDiv.classList.remove('d-none');
@@ -340,9 +493,19 @@
             } catch (error) {
                 console.error('Error fetching MCP configuration:', error);
                 loadingDiv.classList.add('d-none');
-                errorTextP.textContent = error.message || 'An unknown error occurred.';
+                errorTextP.innerHTML = error.message || 'An unknown error occurred.';
                 errorDiv.classList.remove('d-none');
                 contentDiv.classList.add('d-none');
+                
+                // Add auth debug link in case of error
+                const debugLink = document.createElement('div');
+                debugLink.innerHTML = `
+                    <div class="mt-2">
+                        <a href="auth-debug.html" class="btn btn-info">Debug Authentication</a>
+                        <a href="/" class="btn btn-primary ml-2">Back to Home</a>
+                    </div>
+                `;
+                errorDiv.appendChild(debugLink);
             }
         }
 
