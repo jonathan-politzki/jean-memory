@@ -1,5 +1,13 @@
 # JEAN Project Status
 
+## Deployment Status (as of May 2025)
+- ✅ **Web Frontend (`app.jeantechnologies.com`)**: Deployed to Google Cloud Run, accessible via `https://app.jeantechnologies.com`.
+    - Secured by Google Cloud Load Balancer and Identity-Aware Proxy (IAP).
+    - User authentication via Google OAuth managed by IAP.
+- ✅ **Backend (`jean-memory-api`)**: Deployed to Google Cloud Run, connected to Cloud SQL (PostgreSQL).
+    - Accessed by the deployed frontend.
+    - MCP endpoint also available for local/desktop client integration (see below).
+
 ## Current Functionality
 - ✅ **Frontend UI**: Modern AI-style interface with responsive design
 - ✅ **Authentication**: Google OAuth integration working properly.
@@ -38,24 +46,31 @@
 
 ## Next Steps
 
-### 1. Thorough Testing & Refinement
+### 1. Frontend Feature Implementation & Testing
+- Implement UI functionalities on `https://app.jeantechnologies.com` for:
+    - Viewing/managing MCP configuration.
+    - Basic note creation/management (if intended beyond MCP).
+    - Connecting to and managing context sources (GitHub, etc.).
+- Thoroughly test the deployed frontend and its interaction with the deployed backend API.
+
+### 2. Thorough Testing & Refinement (MCP Tools)
 - Rigorously test `access_jean_memory` with various scenarios of relevant, partially relevant, and conflicting memories to evaluate Gemini synthesis quality and adherence to "honesty" in prompts.
 - Iteratively refine the Gemini prompt in `access_jean_memory` for optimal synthesis.
 - Test `value_extraction_tools`.
 - Implement a way to set the GitHub token (e.g., a new MCP tool `update_github_token` or manual DB entry) and then test `github_tools`.
 
-### 2. Enhance Context Functionality
+### 3. Enhance Context Functionality (Backend)
 - Consider UI implications for managing different context banks if a frontend is to interact directly (beyond MCP).
 - Further develop the "intelligent" aspects of `access_jean_memory`:
     - Smarter `context_type` selection if `target_context_types` is not provided.
     - More advanced query generation for `db.search_context`.
 
-### 3. Full MCP Compliance & Features
+### 4. Full MCP Compliance & Features (Backend)
 - Review and test all defined MCP Prompts for utility.
 - Evaluate if specific resource URIs (like `notes://search/{query}`) are still needed or if `access_jean_memory` covers these use cases adequately.
 
-### 4. Security & Production Readiness
-- Review and potentially remove/refine `MCPAuthMiddleware` if `stdio` is the primary local interaction method and authentication is handled differently.
+### 5. Security & Production Readiness (Overall)
+- Review and potentially remove/refine `MCPAuthMiddleware` in the backend if IAP and frontend authentication cover necessary scenarios for the deployed API.
 - Remove any remaining development mode fallbacks if moving towards production.
 - Consider API key rotation strategies for services like Gemini if the key is bundled.
 

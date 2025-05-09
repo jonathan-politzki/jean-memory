@@ -1,15 +1,15 @@
-# JEAN Memory Deployment & Integration Plan (Updated May 8, 2025)
+# JEAN Memory Deployment & Integration Plan (Updated May 14, 2025)
 
 This document outlines the plan and progress for deploying the JEAN Memory backend and frontend services to Google Cloud Run, including database setup, authentication, and secure access configuration.
 
 **Current Status:**
-*   Backend (`jean-memory-api`) is deployed, functional, and connected to Cloud SQL. Requires authenticated access.
-*   Frontend (`jean-memory-frontend`) is deployed and functional. Requires authenticated access.
-*   Direct browser access to both services via their default `.run.app` URLs is **blocked** (results in 403 Forbidden), likely due to organization security policies, even for authenticated users with `run.invoker` roles.
-*   Access via authenticated `curl` requests (using `gcloud auth print-identity-token`) **works** for both services.
-*   Access to the frontend via `gcloud run services proxy` **works**, and the Google OAuth login flow was successfully tested through this proxy.
+*   Backend (`jean-memory-api`) is deployed to Cloud Run, functional, connected to Cloud SQL, and **requires authenticated invocation**. Direct public access is blocked by Organization Policy.
+*   Frontend (`jean-memory-frontend`) is deployed to Cloud Run and functional via `https://app.jeantechnologies.com`. Access is secured by Google Cloud Load Balancer and Identity-Aware Proxy (IAP).
+*   **Architecture:** The frontend (`server.js`) acts as an authenticated proxy for API calls to the backend. Client-side JavaScript calls relative API paths (e.g., `/api/...`), which are handled by `server.js`. `server.js` then makes authenticated calls to the backend service (`https://jean-memory-api-...run.app`) using its Cloud Run service identity.
+*   Direct browser access to default Cloud Run `.run.app` URLs remains **blocked** (403 Forbidden).
+*   The primary domain `jeantechnologies.com` continues to point to Vercel. The Jean application is accessed via the subdomain `app.jeantechnologies.com`.
 
-**Next Major Goal:** Configure secure browser access to the frontend using Google Cloud Load Balancer and Identity-Aware Proxy (IAP).
+**Next Major Goal:** Phase 6: Final Integrations & Testing.
 
 ---
 
@@ -64,141 +64,162 @@ This document outlines the plan and progress for deploying the JEAN Memory backe
     *   Applied migrations from `backend/app/database/migrations/003_integrations.sql` by piping the file into `gcloud beta sql connect ... < backend/app/database/migrations/003_integrations.sql`.
 *   **Cloud Run Deployment (`jean-memory-api`):**
     *   Deployed service using the pushed `amd64` image.
-    *   Configured **without** `--allow-unauthenticated` (requires authentication).
+    *   Initially configured **without** `--allow-unauthenticated`.
+    *   Temporarily deployed **with** `--allow-unauthenticated` during troubleshooting, but attempts to grant `allUsers` the `run.invoker` role failed due to **Organization Policy restrictions**.
+    *   Final deployment configuration **requires authentication** (no `--allow-unauthenticated`).
     *   Added Cloud SQL connection using `--add-cloudsql-instances=gen-lang-client-0888810452:us-central1:jean-memory-db`.
-    *   Set environment variables via `--set-env-vars`, including Google credentials, API keys, and a correctly URL-encoded `DATABASE_URL` using the Cloud SQL connection name (`postgresql://jean_app_user:ENCODED_PASSWORD@/cloudsql/gen-lang-client-0888810452:us-central1:jean-memory-db/postgres`).
-*   **Backend Testing:**
-    *   Verified successful authenticated access using `curl` with an ID token (`gcloud auth print-identity-token`) against the `/health` endpoint.
+    *   Set environment variables via `--set-env-vars`, including `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `GEMINI_API_KEY`, and `DATABASE_URL`.
+*   **Backend Testing:** Direct calls require authentication. Authenticated inter-service calls (e.g., from frontend proxy) work.
 
 ---
 
-## Phase 4: Frontend Deployment (`jean-memory-frontend`) & Access Troubleshooting (Completed - Deployed, Awaiting IAP)
+## Phase 4: Frontend Deployment (`jean-memory-frontend`) & Access Troubleshooting (Completed - Deployed and Accessible via Proxy Architecture)
 
-*   **Docker Image Build:**
+*   Docker Image Build:
     *   Built image using `--platform linux/amd64` flag.
     *   Tagged as `jean-memory-frontend:latest`.
-*   **Image Push:** Pushed `amd64` image `us-central1-docker.pkg.dev/gen-lang-client-0888810452/jean-memory-repo/jean-memory-frontend:latest` to Artifact Registry.
-*   **Cloud Run Deployment (`jean-memory-frontend`):**
-    *   Initial attempt with `--allow-unauthenticated` completed deployment but failed to set IAM policy for `allUsers` (likely Org Policy conflict). Direct browser access failed (403).
-    *   Redeployed **without** `--allow-unauthenticated` (requires authentication).
-    *   Set environment variables `BACKEND_URL=https://jean-memory-api-276083385911.us-central1.run.app` and `NODE_ENV=production`. (Removed reserved `PORT` variable).
-*   **Access Testing Results:**
-    *   Direct Browser Access (`https://jean-memory-frontend-...`): **Consistently Failed (403 Forbidden)**, even when logged into the authorized Google account (`jonathan@...` which has `run.invoker` permission). This occurs before hitting the application code.
-    *   `curl` with ID Token: **Successful** (returned `index.html` content).
-    *   `gcloud run services proxy`: **Successful** (accessed via `http://localhost:8080`). Full Google OAuth login flow initiated from the proxied frontend worked successfully, interacting with the deployed backend.
-*   **Conclusion:** Frontend and backend applications are functional and correctly configured for authentication. Direct browser access via default Cloud Run URLs is blocked by Google infrastructure/policy in this project environment.
+*   Image Push: Pushed `amd64` image `us-central1-docker.pkg.dev/gen-lang-client-0888810452/jean-memory-repo/jean-memory-frontend:latest` to Artifact Registry.
+*   Cloud Run Deployment (`jean-memory-frontend`): Deployed requiring authentication, with `BACKEND_URL` and `NODE_ENV` environment variables set.
+*   **Frontend Proxy Implementation:**
+    *   Modified `frontend/server.js` to act as an API proxy for requests to `/api/*`.
+    *   `server.js` uses `google-auth-library` to fetch an identity token for the backend service (`ACTUAL_BACKEND_URL`).
+    *   It forwards API requests from the client browser to the backend service, adding the `Authorization: Bearer <token>` header.
+    *   Modified client-side JavaScript (`auth.js`, etc.) to make API calls to relative paths (e.g., `/api/auth/google/url`) instead of absolute backend URLs.
+*   Access Testing and Troubleshooting Summary:
+    *   Direct Browser Access to Cloud Run URL: Failed (403).
+    *   `curl` with ID Token to Cloud Run URL: Successful.
+    *   `gcloud run services proxy` to Cloud Run URL: Successful.
+    *   IAP `400: redirect_uri_mismatch`: Resolved by adding IAP redirect URI to OAuth Client ID.
+    *   IAP `The IAP service account is not provisioned...` Error: Resolved by toggling IAP Off/On and granting `Cloud Run Invoker` role to IAP service account (`service-...@gcp-sa-iap.iam.gserviceaccount.com`) via `gcloud`.
+    *   **Client-side CORS / 403 Errors on API calls:** Encountered when client-side JS tried to call the backend URL (`https://jean-memory-api...`) directly.
+        *   **Cause:** Organization Policy prevents making the backend service publicly invocable (`allUsers`). Therefore, direct browser calls (unauthenticated from IAM perspective) fail with 403. CORS configuration on backend was also initially missing the frontend origin.
+        *   **Fix:** Implemented the frontend proxy pattern described above. Backend CORS settings updated via `backend/app/app.py` (`CORSMiddleware`). Backend redeployed requiring authentication. Frontend service account (`276083385911-compute@developer.gserviceaccount.com`) granted `Cloud Run Invoker` role for the backend service (`jean-memory-api`).
+*   **Conclusion:** Secure access to `https://app.jeantechnologies.com` is working via LB+IAP. Application functionality relies on the frontend (`server.js`) proxying API calls to the authenticated backend service.
 
 ---
 
-## Phase 5: Secure Frontend Access via IAP & Load Balancer (Next Steps)
+## Phase 5: Secure Frontend Access via IAP & Load Balancer (COMPLETED)
 
-**Goal:** Provide secure browser access to the `jean-memory-frontend` service using Identity-Aware Proxy (IAP) fronted by a Google Cloud HTTPS Load Balancer.
+**Goal:** Provide secure browser access to the `jean-memory-frontend` service via `app.jeantechnologies.com`.
 
-**Steps:**
+**Final Architecture:** User -> DNS (`app.jeantechnologies.com`) -> Google Cloud Load Balancer (Static IP: `34.160.168.171`, SSL Cert: `app-jean-memory-ssl-cert`) -> IAP (using "Jean Web Client" OAuth ID) -> Serverless NEG (`jean-frontend-serverless-neg`) -> Cloud Run Frontend (`jean-memory-frontend`) -> Frontend acts as Proxy -> Authenticated call to Cloud Run Backend (`jean-memory-api`) -> Backend uses Cloud SQL.
 
-1.  **Reserve Static External IP Address:**
-    *   Create a global static external IP address for the Load Balancer frontend.
-    *   Command: `gcloud compute addresses create jean-memory-lb-ip --global --network-tier=PREMIUM`
-    *   Note the reserved IP address. **Status: COMPLETED (IP: 34.160.168.171)**
+**Steps:** (All marked COMPLETED, notes updated)
 
-2.  **Create Serverless NEG:**
-    *   Create a Serverless Network Endpoint Group (NEG) pointing to the `jean-memory-frontend` Cloud Run service.
-    *   Command: `gcloud compute network-endpoint-groups create jean-frontend-serverless-neg --region=us-central1 --network-endpoint-type=serverless --cloud-run-service=jean-memory-frontend`
-    *   **Status: COMPLETED**
-
-3.  **Create SSL Certificate (Google-managed):**
-    *   If using a custom domain (e.g., `jean.yourdomain.com`), configure DNS first.
-    *   Create a Google-managed SSL certificate for your domain(s). This requires domain ownership verification.
-    *   Command: `gcloud compute ssl-certificates create jean-memory-ssl-cert --domains=YOUR_DOMAIN_HERE` (Replace `YOUR_DOMAIN_HERE`)
-    *   (If no custom domain, skip this and use Google's default domain for the LB initially, though SSL is still recommended).
-    *   **Status: IN PROGRESS / STALLED. Certificate `jean-memory-ssl-cert` created for `jeantechnologies.com`. Current status is `FAILED_NOT_VISIBLE` but Google Cloud is not displaying the required CNAME/DNS record for domain verification via `gcloud` or the console. This is blocking activation.**
-
-4.  **Create Load Balancer Backend Service:**
-    *   Create a backend service that will route traffic to the Serverless NEG.
-    *   Command: `gcloud compute backend-services create jean-frontend-backend-service --global --load-balancing-scheme=EXTERNAL_MANAGED`
-    *   **Status: COMPLETED (Protocol updated to HTTPS)**
-
-5.  **Add NEG to Backend Service:**
-    *   Attach the Serverless NEG created in Step 2 to the backend service.
-    *   Command: `gcloud compute backend-services add-backend jean-frontend-backend-service --global --network-endpoint-group=jean-frontend-serverless-neg --network-endpoint-group-region=us-central1`
-    *   **Status: COMPLETED**
-
-6.  **Enable IAP on Backend Service:**
-    *   **OAuth Consent Screen:** Ensure an OAuth consent screen is configured for the project (required for IAP). Navigate to "APIs & Services" -> "OAuth consent screen" in the Console. Configure internal or external as appropriate.
-    *   **Enable IAP:** Use `gcloud` or the Console to enable IAP for the backend service, referencing the OAuth client ID created for web applications (ensure the Load Balancer's future URI is added there if necessary, though typically IAP uses its own redirect).
-    *   Command: `gcloud compute backend-services update jean-frontend-backend-service --global --iap=enabled,oauth2-client-id=YOUR_WEB_OAUTH_CLIENT_ID,oauth2-client-secret=YOUR_WEB_OAUTH_CLIENT_SECRET` (Replace with your *actual* OAuth Web Client ID and Secret).
-    *   **Status: COMPLETED (IAP API also enabled in console)**
-
-7.  **Create Load Balancer URL Map:**
-    *   Define how incoming requests are routed to backend services (for now, default to `jean-frontend-backend-service`).
-    *   Command: `gcloud compute url-maps create jean-memory-lb-url-map --default-service jean-frontend-backend-service`
-    *   **Status: COMPLETED**
-
-8.  **Create Target HTTPS Proxy:**
-    *   Create the proxy that uses the URL map and the SSL certificate.
-    *   Command: `gcloud compute target-https-proxies create jean-memory-https-proxy --url-map=jean-memory-lb-url-map --ssl-certificates=jean-memory-ssl-cert` (Reference the cert created in Step 3, if applicable).
-    *   **Status: COMPLETED (Used `jean-memory-ssl-cert` while it was `PROVISIONING`)**
-
-9.  **Create Global Forwarding Rule:**
-    *   Create the rule that directs traffic from the reserved static IP address and port 443 to the HTTPS proxy.
-    *   Command: `gcloud compute forwarding-rules create jean-memory-https-forwarding-rule --global --load-balancing-scheme=EXTERNAL_MANAGED --network-tier=PREMIUM --address=jean-memory-lb-ip --target-https-proxy=jean-memory-https-proxy --ports=443`
-    *   **Status: COMPLETED**
-
-10. **Grant Users IAP Access:**
-    *   Grant users/groups who need browser access the `IAP-secured Web App User` (`roles/iap.securedWebAppUser`) role *on the IAP-secured backend service*.
-    *   Command: `gcloud compute backend-services add-iam-policy-binding jean-frontend-backend-service --global --member='user:jonathan@jeantechnologies.com' --role='roles/iap.securedWebAppUser'`
-    *   **Status: COMPLETED (Achieved via Google Cloud Console IAP page, as `gcloud` commands failed to apply the role directly to the backend service). User `jonathan@jeantechnologies.com` granted `IAP-secured Web App User` role.**
-
-11. **Update DNS (If using Custom Domain):**
-    *   Point your custom domain's A record to the reserved static IP address noted in Step 1.
-    *   **Status: PENDING. Requires `jean-memory-ssl-cert` to be ACTIVE. Load Balancer IP is `34.160.168.171`. Current `jeantechnologies.com` A record points to Vercel (`76.76.21.21`).**
-
-12. **Test Access:**
-    *   Access the frontend via the Load Balancer's IP address or your custom domain (if configured).
-    *   You should be redirected through the Google login flow (handled by IAP).
-    *   After successful login, you should see your frontend application.
-    *   **Status: PENDING DNS and SSL resolution.**
+1.  **Reserve Static External IP Address:** COMPLETED (IP: `34.160.168.171`)
+2.  **Create Serverless NEG:** COMPLETED (`jean-frontend-serverless-neg` -> `jean-memory-frontend`)
+3.  **Create SSL Certificate:** COMPLETED (`app-jean-memory-ssl-cert` for `app.jeantechnologies.com`, ACTIVE)
+4.  **Create Load Balancer Backend Service:** COMPLETED (`jean-frontend-backend-service`)
+5.  **Add NEG to Backend Service:** COMPLETED
+6.  **Enable IAP on Backend Service:** COMPLETED (Referencing "Jean Web Client" OAuth ID with correct origins and redirect URIs, including the IAP handler URI)
+7.  **Create Load Balancer URL Map:** COMPLETED (`jean-memory-lb-url-map` -> `jean-frontend-backend-service`)
+8.  **Create Target HTTPS Proxy:** COMPLETED (`jean-memory-https-proxy` using `app-jean-memory-ssl-cert`)
+9.  **Create Global Forwarding Rule:** COMPLETED
+10. **Grant Necessary IAM Access:** COMPLETED
+    *   User Access: `jonathan@jeantechnologies.com` granted `IAP-secured Web App User` on `jean-frontend-backend-service`.
+    *   IAP Service Account Access: `service-276083385911@gcp-sa-iap.iam.gserviceaccount.com` granted `Cloud Run Invoker` at project level (via `gcloud`).
+    *   Frontend->Backend Access: `276083385911-compute@developer.gserviceaccount.com` (frontend SA) granted `Cloud Run Invoker` on `jean-memory-api` service.
+11. **Update DNS:** COMPLETED (A record for `app.jeantechnologies.com` -> `34.160.168.171`)
+12. **Test Access:** COMPLETED (Successfully accessing `https://app.jeantechnologies.com` via IAP and frontend proxy).
 
 ---
 
-## Phase 6: Final Integrations & Testing (Future)
+## Phase 6: Final Integrations & Testing (Current Focus)
 
-*   **MCP Client Integration:**
-    *   Update Claude Desktop/MCP clients with the production backend URL (`https://jean-memory-api-...`) and user-specific API key/User ID obtained from the frontend.
-    *   Determine how MCP clients will authenticate to the *backend* service (which requires authentication). Options:
-        *   Configure clients to obtain and send Google ID Tokens (ideal if possible).
-        *   Potentially place the *backend* service behind IAP as well (requires clients to handle IAP flow or use service account authentication).
-        *   Explore API Gateway for more granular API key management/authentication.
-*   **Thorough End-to-End Testing:** Test all features, data sources, and integrations.
-*   **Security Enhancements:** Review IAM roles, consider API key rotation, enable Cloud Armor WAF rules on the Load Balancer.
-*   **Monitoring & Maintenance:** Set up Cloud Monitoring dashboards, alerting policies, logging for Cloud Run/Cloud SQL/Load Balancer, configure database backups.
+### Resolved Issues
+* **Frontend JavaScript Configuration:** Fixed by ensuring proper configuration injection in `server.js` before serving pages.
+* **CORS Configuration:** Updated `backend/app/app.py` to include `https://app.jeantechnologies.com` in allowed origins.
+* **Cloud Run Authentication:** Implemented successful proxy pattern where frontend service proxies API requests with service-to-service authentication.
+* **Google Auth 400 Error:** Resolved by correctly implementing authenticated proxy in `frontend/server.js` for all `/api/*` routes and modifying client-side JavaScript to use relative API paths.
 
----
+### Path Forward: Next Steps
 
-## Appendix: Troubleshooting Summary Notes
+1. **Frontend UI Completion (Priority: High)**
+   * Complete remaining UI components for user management
+   * Implement proper loading states and error handling
+   * Add comprehensive user feedback for all operations
+   * Implement responsive design for mobile accessibility
 
-*   **Architecture Mismatch:** Initial backend deployment failed (`exec format error`) due to building `arm64` image on Mac for `amd64` Cloud Run. Resolved by adding `--platform linux/amd64` to `docker build`.
-*   **Docker Auth:** `docker push` initially failed (`Unauthenticated`) due to `docker-credential-gcloud` not found in PATH. Resolved by prepending SDK `bin` directory to `PATH` for the `docker push` command.
-*   **Database Password Encoding:** Application failed to connect to DB (`ValueError: bad query field`) because password contained special characters (`!`, `?`). Resolved by URL-encoding the password in the `DATABASE_URL` environment variable.
-*   **Browser 403 Forbidden:** Persistent issue accessing deployed services directly via browser (`.run.app` URL) despite correct IAM (`run.invoker`) and successful authenticated `curl` requests. Likely caused by restrictive Organization Policy or similar Google infrastructure behavior preventing direct authenticated browser access. Workaround is using IAP + Load Balancer.
-*   **`gcloud` Components:** Required installation of `beta` and `cloud_sql_proxy` components for certain commands (`gcloud beta sql connect`, `gcloud run services proxy`).
-*   **`psql` Client:** Required installation via Homebrew (`brew install postgresql`) for `gcloud beta sql connect` to function.
-*   **Local MCP Client (`ModuleNotFoundError: No module named 'uvicorn'`):** Fixed by ensuring the Claude Desktop MCP configuration uses the full path to the Python executable within the project's local Poetry virtual environment (`poetry env info --path` in the `backend` directory, then append `/bin/python`). This requires `poetry install` to be run locally in the `backend` directory first. Also involved fixing the `poetry` command itself by correcting its shebang line (`#!/usr/bin/env python3`) in `/Library/Frameworks/Python.framework/Versions/3.10/bin/poetry`.
+2. **MCP Client Integration (Priority: High)**
+   * Update Claude Desktop/MCP clients to use the authenticated backend pattern
+   * Configure client authentication using:
+     * Service account keys for development and testing
+     * OAuth user flow for production usage
+   * Implement token refresh logic in clients to prevent authentication timeouts
+
+3. **Testing and Quality Assurance (Priority: Medium)**
+   * Develop automated test suite for API endpoints
+   * Create end-to-end tests for authentication flows
+   * Test memory storage and retrieval with various data types
+   * Performance testing under load conditions
+
+4. **Security Improvements (Priority: High)**
+   * Implement regular API key rotation
+   * Configure Cloud Armor WAF rules on the Load Balancer
+   * Set up alerts for suspicious access patterns
+   * Conduct security review of all authentication flows
+
+5. **Monitoring and Observability (Priority: Medium)**
+   * Set up Cloud Monitoring dashboards for:
+     * API latency and error rates
+     * Database performance
+     * Frontend performance metrics
+   * Configure alerting for critical service disruptions
+   * Implement structured logging for easier debugging
+
+6. **Documentation (Priority: Medium)**
+   * Update architectural diagrams to reflect current implementation
+   * Document API endpoints with examples
+   * Create user guide for client integration
+   * Document operational procedures for maintenance
+
+### Implementation Schedule
+
+| Task | Timeline | Dependencies | Owner |
+|------|----------|--------------|-------|
+| Frontend UI Completion | 1-2 weeks | None | Frontend team |
+| MCP Client Integration | 2 weeks | Stable API endpoints | Client team |
+| Testing and QA | Ongoing | Feature completion | QA team |
+| Security Improvements | 1 week | Core functionality working | DevOps team |
+| Monitoring Setup | 3 days | Deployed services | DevOps team |
+| Documentation | Ongoing | Implementation details | All teams |
+
+### Required Resources
+
+* Developer time for frontend completion
+* QA resources for comprehensive testing
+* Cloud budget for additional services (monitoring, WAF)
+* Documentation resources
 
 ## Post-Deployment Tasks
 
-1.  **Update Google OAuth Credentials:**
-    *   Ensure the production frontend URL (e.g., `https://yourdomain.com`) is added to "Authorized JavaScript origins".
-    *   Ensure the production callback URL (e.g., `https://yourdomain.com/auth/google/callback.html`) is added to "Authorized redirect URIs".
-    *   Review and configure the OAuth consent screen appropriately for production.
+1. **Update Google OAuth Credentials:**
+   * Ensure the production frontend URL is added to "Authorized JavaScript origins"
+   * Ensure the production callback URL is added to "Authorized redirect URIs"
+   * Review and configure the OAuth consent screen appropriately for production
 
 2. **Security Enhancements:**
-   * Set up Cloud Run services with proper IAM roles rather than public access
-   * Configure firewall rules as needed
-   * Implement API key rotation policy
+   * Regularly review IAM roles and permissions
+   * Implement scheduled security scans
+   * Document security protocols for incident response
 
 3. **Monitoring and Maintenance:**
    * Set up Cloud Monitoring for CPU/memory usage and error tracking
    * Create alerting policies for critical errors
    * Implement logging for security and debugging
-   * Schedule database backups 
+   * Schedule database backups and test recovery procedures
+
+## Appendix: Troubleshooting Summary Notes
+
+*   **Architecture Mismatch:** Resolved (`--platform linux/amd64`).
+*   **Docker Auth:** Resolved (`gcloud auth configure-docker`).
+*   **Database Password Encoding:** Resolved (URL-encode password).
+*   **Browser 403 Forbidden (Direct Cloud Run URL):** Acknowledged; resolved via LB/IAP/Proxy.
+*   **`gcloud` Components:** Acknowledged.
+*   **`psql` Client:** Acknowledged.
+*   **Local MCP Client Setup Issues:** Resolved (Poetry path, SSL certs).
+*   **IAP `redirect_uri_mismatch`:** Resolved (Added IAP handler URI to OAuth client).
+*   **IAP Service Account Not Provisioned:** Resolved (Toggled IAP, granted `run.invoker` via `gcloud`).
+*   **Console UI IAM Issues:** Noted difficulty adding Google-managed service accounts via UI; `gcloud` was successful.
+*   **Client CORS/403 on Backend API Calls:** Resolved by implementing frontend proxy pattern due to Org Policy preventing public Cloud Run invocation.
+*   **Google Auth 400 Error:** Resolved by implementing correct authentication flow in the frontend proxy

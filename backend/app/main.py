@@ -350,14 +350,23 @@ async def disconnect_obsidian(request: Request):
 # Google Auth Integration Routes
 @app.get("/api/auth/google/url")
 async def get_google_oauth_url(user_id: str = None):
-    """Get Google OAuth URL for authorization"""
+    logger.critical("!!!!!!!!!! ENTERING /api/auth/google/url !!!!!!!!!")
+    logger.info(f"[/api/auth/google/url] Received request with user_id: {user_id}")
     if google_auth_router is None:
+        logger.error("[/api/auth/google/url] Google Auth router not initialized!")
         raise HTTPException(status_code=503, detail="Google Auth router not initialized yet")
     if not user_id:
+        logger.warning("[/api/auth/google/url] Request missing user_id parameter.")
         raise HTTPException(status_code=400, detail="User ID is required")
     
-    result = await google_auth_router.get_oauth_url(user_id)
-    return result
+    try:
+        logger.info(f"[/api/auth/google/url] Calling google_auth_router.get_oauth_url for user_id: {user_id}")
+        result = await google_auth_router.get_oauth_url(user_id)
+        logger.info("[/api/auth/google/url] Successfully generated OAuth URL.")
+        return result
+    except Exception as e:
+        logger.exception(f"[/api/auth/google/url] Error calling google_auth_router.get_oauth_url: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error generating auth URL.")
 
 @app.get("/api/auth/google/callback")
 async def handle_google_oauth_callback(code: str, state: str):
@@ -420,6 +429,16 @@ async def get_knowledge_graph(user_id: str, start_date: Optional[str] = None, en
     }
 
 if __name__ == "__main__":
+    # ...
+    # Ensure PORT is read from env for direct uvicorn.run calls
+    # For python -m uvicorn, it often picks up PORT env var automatically if --port is not specified
+    # or if uvicorn.Config is used appropriately.
+    # For this CMD: ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0"]
+    # Uvicorn should listen on the PORT env var. Let's ensure this.
+    # No, the previous CMD with ${PORT:-8080} is fine for the shell form.
+    # Let's try the simpler exec form and ensure the port is handled.
+    pass
+
     logger.info(f"Starting server with Uvicorn on host 0.0.0.0 port 8080")
     # Note: Uvicorn handles the asyncio event loop when run this way.
     uvicorn.run(

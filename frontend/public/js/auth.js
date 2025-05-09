@@ -132,59 +132,58 @@ const AuthManager = {
         
         console.log(`HTML-based callback available: ${callbackHtmlExists}`);
         
-        // Try multiple backend URLs in order
-        const possibleBackendUrls = [
-            // First try the Docker service name
-            'http://backend:8000',
-            // Then try localhost (for local development outside Docker)
-            'http://localhost:8000',
-            // Finally try the origin (when frontend and backend are on same domain)
-            window.location.origin
-        ];
+        console.log(`Attempting Google Auth via frontend proxy...`);
 
         // Generate a random user ID for initial auth
         const tempUserId = 'temp-' + Math.random().toString(36).substring(2, 15);
         
-        // Try each URL in sequence until one works
-        for (const backendUrl of possibleBackendUrls) {
-            try {
-                console.log(`Trying to connect to backend at: ${backendUrl}`);
-                
-                // Get the OAuth URL from the backend
-                const response = await fetch(`${backendUrl}/api/auth/google/url?user_id=${tempUserId}`);
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.auth_url) {
-                        console.log("Successfully got auth URL, redirecting to Google OAuth");
-                        // Redirect to Google OAuth
-                        window.location.href = data.auth_url;
-                        return; // Exit after successful redirect
-                    } else {
-                        console.warn("Auth URL not provided by backend, trying next URL");
-                    }
+        // Define the relative path for the API call
+        const apiUrl = `/api/auth/google/url?user_id=${tempUserId}`;
+
+        try {
+            // Get the OAuth URL from the backend via the frontend proxy
+            const response = await fetch(apiUrl); // Use relative path
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (data.auth_url) {
+                    console.log("Successfully got auth URL via proxy, redirecting to Google OAuth");
+                    // Redirect to Google OAuth
+                    window.location.href = data.auth_url;
+                    return; // Exit after successful redirect
                 } else {
-                    console.warn(`Backend at ${backendUrl} returned status: ${response.status}`);
+                    console.warn("Auth URL not provided by proxied backend.");
+                    if (typeof window.showNotification === 'function') {
+                        window.showNotification('Failed to start Google authentication: Backend did not provide auth URL.', 'error');
+                    }
                 }
-            } catch (error) {
-                console.warn(`Failed to connect to ${backendUrl}: ${error.message}`);
-                // Continue to the next URL
+            } else {
+                console.warn(`Proxied backend call returned status: ${response.status}`);
+                if (typeof window.showNotification === 'function') {
+                    // Try to get error message from proxied response if available
+                    let errorMsg = `Backend server error (${response.status}).`;
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.message || errorData.detail || errorMsg;
+                    } catch (e) { /* Ignore if response is not JSON */ }
+                    window.showNotification(`Failed to start Google authentication: ${errorMsg}`, 'error');
+                }
+            }
+        } catch (error) {
+            console.error(`Failed to connect to frontend proxy for Google Auth (${apiUrl}): ${error.message}`, error);
+            if (typeof window.showNotification === 'function') {
+                window.showNotification(`Failed to start Google authentication: Could not connect to frontend server proxy. Check console.`, 'error');
             }
         }
         
-        // If we've tried all URLs and none worked, show an error
-        console.error("Could not connect to any backend endpoint");
-        if (typeof window.showNotification === 'function') {
-            window.showNotification(`Failed to start Google authentication: Could not connect to backend server`, 'error');
-        }
-        
-        // Fall back to demo login
-        console.log("Falling back to demo login");
+        // If we've reached this point, the call failed
+        console.error("Google authentication setup failed via proxy. Falling back to demo login.");
+        // Fall back to demo login (or other error handling)
         this.login({
-            userId: 'google-demo',
-            apiKey: 'demo-api-key-google123',
-            name: 'Google User',
-            email: 'google@jeanmemory.ai',
+            userId: 'google-auth-failed-demo',
+            apiKey: 'demo-api-key-google-auth-failed123',
+            name: 'Google Auth Failed User',
+            email: 'googleauthfailed@jeanmemory.ai',
             avatar: 'img/user-avatar.png',
             provider: 'google'
         });
@@ -308,17 +307,17 @@ const AuthManager = {
             return null;
         }
         
-        // Get base URL from environment or use location origin
-        const baseUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
-            ? 'http://localhost:8000' 
-            : window.location.origin;
+        // Get base URL - now should point to the frontend proxy for MCP calls too
+        // Base URL should be relative or the frontend origin for API calls
+        const baseUrl = ''; // Use relative path for API calls through frontend proxy
         
-        // Generate MCP config
+        // Generate MCP config - pointing to the frontend proxy endpoint
+        // Note: The backend /mcp endpoint needs to be proxied via server.js as well if used
         return {
             mcpServers: {
                 "jean-memory": {
                     serverType: "HTTP",
-                    serverUrl: baseUrl,
+                    serverUrl: `${baseUrl}/api/mcp`, // Assumes /api/mcp will be proxied
                     headers: {
                         "X-API-Key": apiKey,
                         "X-User-ID": userId

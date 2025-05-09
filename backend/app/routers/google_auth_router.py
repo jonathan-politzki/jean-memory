@@ -19,14 +19,19 @@ class GoogleAuthRouter:
         self.db = db
         self.client_id = os.getenv("GOOGLE_CLIENT_ID")
         self.client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
-        # REVERT HARDCODING:
-        # self.redirect_uri = "http://localhost:3005/auth/google/callback.html" # This was for testing
-        self.redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:3005/auth/google/callback.html") # Restore original
+        self.redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:3005/auth/google/callback.html")
         self.state_store = {}  # In-memory store for CSRF tokens
         self.processed_codes = set()  # Track codes we've already processed
+        logger.info(f"GoogleAuthRouter initialized. Client ID set: {bool(self.client_id)}, Redirect URI: {self.redirect_uri}")
 
     async def get_oauth_url(self, user_id: str) -> Dict[str, Any]:
         """Generate OAuth URL for Google authentication"""
+        logger.info(f"[get_oauth_url] Called for user_id: {user_id}")
+        # Check if essential config is missing
+        if not self.client_id or not self.redirect_uri:
+            logger.error(f"[get_oauth_url] Missing essential configuration! Client ID: {self.client_id}, Redirect URI: {self.redirect_uri}")
+            raise HTTPException(status_code=500, detail="Google OAuth client configuration error.")
+        
         # Create a state parameter to prevent CSRF
         state = str(uuid.uuid4())
         self.state_store[state] = user_id
@@ -54,7 +59,7 @@ class GoogleAuthRouter:
             "&code_challenge_method=S256"
         )
 
-        logger.info(f"[AUTH_DEBUG] Generated Google OAuth URL: {auth_url}")
+        logger.info(f"[AUTH_DEBUG] Generated Google OAuth URL (first 80 chars): {auth_url[:80]}...")
 
         return {
             "success": True,

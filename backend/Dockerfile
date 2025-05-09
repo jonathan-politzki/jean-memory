@@ -30,5 +30,5 @@ EXPOSE 8000 8001
 ENV MCP_LOG_LEVEL=INFO
 ENV MCP_LOG_TO_STDERR=true
 
-# Command to run both servers
-CMD bash -c "python jean_mcp_server.py --mode http --host 0.0.0.0 --port 8001 & python -m uvicorn app.main:app --host 0.0.0.0 --port 8000" 
+# Command to run both servers, with Uvicorn using the PORT env variable
+CMD bash -c "python jean_mcp_server.py --mode http --host 0.0.0.0 --port 8001 & python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}" 

@@ -27,14 +27,21 @@ def create_app():
         version="0.1.0",
     )
     
+    # Define allowed origins
+    origins = [
+        "http://localhost:3005",       # Local frontend development
+        "https://app.jeantechnologies.com", # Deployed frontend
+        # Add any other origins if needed, e.g., a staging environment
+    ]
+    
     # Add CORS middleware BEFORE adding dependencies
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Allow all origins for testing
+        allow_origins=origins,  # Use the specific list
         allow_credentials=True,
-        allow_methods=["GET", "POST", "OPTIONS", "DELETE", "PUT", "PATCH"],
-        allow_headers=["*"],  # Allow all headers including X-API-Key
-        expose_headers=["*"],
+        allow_methods=["*"], # Allow all standard methods
+        allow_headers=["*"],  # Allow all headers
+        expose_headers=["*"], # Allow exposure of any headers if needed
     )
     
     # Add global dependency AFTER middleware
