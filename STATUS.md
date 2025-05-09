@@ -36,6 +36,11 @@
     - Clear memory banks using `clear_jean_memory_bank`.
     - Other tools (GitHub, value extraction) are available but may depend on further setup (e.g., GitHub token).
 
+### Local Development Database Note:
+- When running the MCP server locally (e.g., via Claude Desktop), ensure it uses the correct `DATABASE_URL` for the local Dockerized PostgreSQL (e.g., `postgresql://postgres:postgres@localhost:5433/postgres`).
+- This is typically set in the `env` block of your `claude_desktop_config.json`.
+- If you encounter database connection errors referencing incorrect hostnames, credentials, or Cloud SQL paths, your shell environment might have an overriding `DATABASE_URL`. Prefixing the server command can resolve this: `DATABASE_URL="postgresql://postgres:postgres@localhost:5433/postgres" poetry run python jean_mcp_server.py --mode stdio`.
+
 ## Architecture Improvements
 - ✅ **Database Singleton Pattern**: Ensures all app components use the same database connection.
 - ✅ **API Key Validation (Development Mode)**: Robust validation with development mode fallbacks for `stdio` context.

@@ -134,46 +134,11 @@ poetry run python jean_mcp_server.py --mode stdio
 poetry run python jean_mcp_server.py --mode http --port 8001
 ```
 
-### Testing the MCP Endpoint
-Once both frontend and backend are running:
-1. Go to http://localhost:3005
-2. Sign in with Google
-3. View your MCP configuration on the dashboard
-4. Test the MCP endpoint by using the configuration in an MCP-compatible client
-
-## Integration with MCP Clients
-
-To use JEAN with an MCP-compatible client (like Claude Desktop):
-
-1.  **Ensure Local Dependencies:** Make sure you have run `poetry install` within the `backend` directory locally to create a virtual environment and install all necessary packages.
-2.  **Find Python Path:** In the `backend` directory, run `poetry env info --path`. This will give you the path to the virtual environment (e.g., `/path/to/your/project/backend/.venv`). Construct the full path to the Python executable within this environment (e.g., `/path/to/your/project/backend/.venv/bin/python`).
-3.  **Configure MCP Client:**
-    *   Copy the MCP configuration template (see below or obtain from a running instance if the frontend provides it).
-    *   **Crucially, set the `"command"` value in the configuration to the full Python path you found in step 2.**
-    *   Set the necessary `env` variables in the configuration (DATABASE_URL pointing to local Docker Postgres `localhost:5433`, API keys, etc.).
-4.  **Add Config to Client:** Add the modified configuration JSON to your MCP client's settings.
-5.  **Restart Client:** Restart your MCP client (e.g., Claude Desktop). The client will now use the correct Python environment to run `jean_mcp_server.py` and should have access to your personal context via the tools.
-
-**Example MCP Configuration Snippet (Modify `"command"` and `env`):**
-```json
-{
-  "mcpServers": {
-    "jean-memory-stdio": {
-      "command": "/path/to/your/project/backend/.venv/bin/python", // <-- UPDATE THIS PATH
-      "args": [
-        "/path/to/your/project/backend/jean_mcp_server.py", // <-- Ensure this points to the script
-        "--mode", "stdio"
-      ],
-      "env": {
-        "JEAN_USER_ID": "1",
-        "JEAN_API_KEY": "local-dev-key", // Use a suitable key for local dev
-        "DATABASE_URL": "postgresql://postgres:postgres@localhost:5433/postgres", // Assumes Docker Compose DB
-        "GEMINI_API_KEY": "YOUR_GEMINI_KEY_HERE"
-      }
-    }
-  }
-}
-```
+**Note on `DATABASE_URL` for Local Development:** When running the MCP server locally for clients like Claude Desktop, it's crucial that the server uses the `DATABASE_URL` for your local PostgreSQL instance (e.g., `postgresql://postgres:postgres@localhost:5433/postgres` if using the provided Docker Compose setup).
+The MCP client configuration's `env` block (shown above) is the primary place to set this. However, if the server still fails to connect to the local database (e.g., with errors mentioning a Cloud SQL path or incorrect credentials), your local shell environment might have a conflicting `DATABASE_URL` set.
+In such cases, you can explicitly set it when running the server:
+`cd backend && DATABASE_URL="postgresql://postgres:postgres@localhost:5433/postgres" poetry run python jean_mcp_server.py --mode stdio`
+This ensures the correct local database URL is used, overriding any conflicting environment variables.
 
 **Note on macOS SSL Issues:** If you encounter `SSL: CERTIFICATE_VERIFY_FAILED` errors when installing Poetry or Python packages, you may need to run the `Install Certificates.command` script located in your Python installation's Applications folder (e.g., `/Applications/Python 3.10/`).
 
