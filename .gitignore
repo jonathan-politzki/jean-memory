@@ -83,3 +83,4 @@ docker-compose.override.yml
 
 # Ignore the actual MCP configuration with secrets
 .cursor/mcp.json 
+backend/service.yaml 
