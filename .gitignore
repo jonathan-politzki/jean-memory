@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 cloud_env.yaml
+deploy.sh
 
 # Virtual environments
 .venv/

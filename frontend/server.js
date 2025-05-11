@@ -11,18 +11,15 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3005;
-const ACTUAL_BACKEND_URL = process.env.BACKEND_URL;
-const DEV_MODE = process.env.NODE_ENV === 'development' || process.env.DEV_MODE === 'true';
+const ACTUAL_BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000';
+const DEV_MODE = (process.env.NODE_ENV !== 'production') && (process.env.DEV_MODE !== 'false');
+
+// Temporarily disable mock auth to test real OAuth flow with our PKCE fix
+const MOCK_AUTH = false; // Change this back to DEV_MODE after testing
 
 console.log(`JEAN Frontend server starting on port ${PORT}`);
-if (!ACTUAL_BACKEND_URL) {
-    console.error('FATAL ERROR: BACKEND_URL environment variable not set!');
-    process.exit(1);
-}
 console.log(`Proxying API requests to: ${ACTUAL_BACKEND_URL}`);
-if (DEV_MODE) {
-    console.log('Development mode: enabled - using mock responses for authentication');
-}
+console.log(`Development mode: ${DEV_MODE ? 'enabled' : 'disabled'}${DEV_MODE ? ' - using mock responses for authentication' : ''}`);
 
 // Middleware
 app.use(cors());
@@ -56,38 +53,46 @@ async function getAuthenticatedClient() {
 }
 
 // Special handler for Google Auth URL in development mode
-app.get('/api/auth/google/url', (req, res) => {
-    if (DEV_MODE) {
+app.get('/api/auth/google/url', async (req, res) => {
+    console.log(`⭐ AUTH REQUEST: GET ${req.url} -> ${ACTUAL_BACKEND_URL}${req.url}`);
+    
+    // Extract user_id parameter for logging
+    const userId = req.query.user_id;
+    console.log(`⭐ User ID parameter: ${userId}`);
+    
+    // In development mode with mock auth, return a mock URL
+    if (MOCK_AUTH) {
         console.log('DEV MODE: Returning mock Google auth URL');
-        // Return mock auth URL that points back to our callback
         return res.json({
             success: true,
-            auth_url: `http://localhost:3005/auth/google/callback.html?code=dev_mode_mock_code&state=dev_state`
+            auth_url: `/auth/google/callback.html?code=dev_mode_mock_code&state=dev_state`
         });
-    } else {
-        // Normal proxy behavior in production
-        proxyRequest(req, res);
     }
+    
+    // Otherwise proxy to the real backend
+    await proxyRequest(req, res);
 });
 
 // Special handler for Google Auth callback in development mode
-app.get('/api/auth/google/callback', (req, res) => {
-    if (DEV_MODE) {
+app.get('/api/auth/google/callback', async (req, res) => {
+    const { code, state } = req.query;
+    
+    // In development mode with mock auth, return a mock success
+    if (MOCK_AUTH) {
         console.log('DEV MODE: Returning mock auth success');
-        // Return mock successful authentication
         return res.json({
             success: true,
             user_info: {
-                user_id: 1,
-                email: "dev@example.com",
-                name: "Development User",
-                api_key: "DEV_API_KEY_1234567890"
+                user_id: 'dev-user-123',
+                email: 'dev@example.com',
+                name: 'Development User',
+                api_key: 'dev-api-key-123'
             }
         });
-    } else {
-        // Normal proxy behavior in production
-        proxyRequest(req, res);
     }
+    
+    // Otherwise proxy to the real backend
+    await proxyRequest(req, res);
 });
 
 // Proxy API Routes
