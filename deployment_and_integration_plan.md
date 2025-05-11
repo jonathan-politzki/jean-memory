@@ -130,7 +130,14 @@ This document outlines the plan and progress for deploying the JEAN Memory backe
 * **Frontend JavaScript Configuration:** Fixed by ensuring proper configuration injection in `server.js` before serving pages.
 * **CORS Configuration:** Updated `backend/app/app.py` to include `https://app.jeantechnologies.com` in allowed origins.
 * **Cloud Run Authentication:** Implemented successful proxy pattern where frontend service proxies API requests with service-to-service authentication.
-* **Google Auth 400 Error:** Resolved by correctly implementing authenticated proxy in `frontend/server.js` for all `/api/*` routes and modifying client-side JavaScript to use relative API paths.
+* **Google Auth 400 Error:** Partially resolved by:
+    * Updated environment variables to include `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` and `DATABASE_URL` correctly
+    * The first part of the flow (auth URL generation) now works
+    * The second part (token exchange) still fails with a 400 error from Google
+    * Both callback URIs have been added to Google OAuth configuration:
+        * `https://app.jeantechnologies.com/auth/google/callback.html`
+        * `https://app.jeantechnologies.com/api/auth/google/callback`
+    * Current theory: The token exchange code in the backend might have issues with the state parameter or code verifier that's part of the PKCE flow
 
 ### Path Forward: Next Steps
 
@@ -222,4 +229,11 @@ This document outlines the plan and progress for deploying the JEAN Memory backe
 *   **IAP Service Account Not Provisioned:** Resolved (Toggled IAP, granted `run.invoker` via `gcloud`).
 *   **Console UI IAM Issues:** Noted difficulty adding Google-managed service accounts via UI; `gcloud` was successful.
 *   **Client CORS/403 on Backend API Calls:** Resolved by implementing frontend proxy pattern due to Org Policy preventing public Cloud Run invocation.
-*   **Google Auth 400 Error:** Resolved by implementing correct authentication flow in the frontend proxy
+*   **Google Auth 400 Error:** Partially resolved by:
+    * Updated environment variables to include `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` and `DATABASE_URL` correctly
+    * The first part of the flow (auth URL generation) now works
+    * The second part (token exchange) still fails with a 400 error from Google
+    * Both callback URIs have been added to Google OAuth configuration:
+        * `https://app.jeantechnologies.com/auth/google/callback.html`
+        * `https://app.jeantechnologies.com/api/auth/google/callback`
+    * Current theory: The token exchange code in the backend might have issues with the state parameter or code verifier that's part of the PKCE flow

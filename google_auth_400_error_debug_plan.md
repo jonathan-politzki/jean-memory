@@ -233,3 +233,84 @@ The primary goal is to understand *why* the backend is returning a 400 error for
     ```
 
 This document should provide a good starting point for the next person. The immediate focus should be on instrumenting and analyzing the backend `/api/auth/google/url` endpoint. 
+
+## 7. Recent Progress (May 11, 2025 Update)
+
+### 7.1 Current Status
+
+We've made progress on the authentication flow but still encounter an issue:
+
+1. **What's Fixed:**
+   * All environment variables are now correctly set:
+     * `GOOGLE_CLIENT_ID`
+     * `GOOGLE_CLIENT_SECRET`
+     * `GOOGLE_REDIRECT_URI` (now correctly set to `https://app.jeantechnologies.com/api/auth/google/callback`)
+     * `DATABASE_URL`
+   * The frontend proxy successfully calls the backend
+   * First part of auth flow (generating the auth URL) works correctly
+
+2. **Current Issue:**
+   * When Google redirects back to the callback URL, the token exchange still fails with a 400 error
+   * The error is from Google's token endpoint, not from our backend
+   * Exact error in logs: `Your client has issued a malformed or illegal request.` (Google 400 response)
+
+### 7.2 Token Exchange Endpoint Logs
+
+The frontend successfully makes the callback request to the backend with the Google authorization code:
+```
+GET /api/auth/google/callback?state=03d1f53c-a6e3-4e7b-9709-bee7af77a568&code=4%2F0AUJR-x4UUD...&scope=email+profile...
+```
+
+And the backend attempts to exchange this code with Google, but receives a 400 error.
+
+### 7.3 Probable Causes
+
+1. **PKCE Mismatch:** 
+   * The `google_auth_router.py` code uses PKCE (Proof Key for Code Exchange) for enhanced security.
+   * If the code verifier generated in `get_oauth_url` does not exactly match what's sent in `handle_oauth_callback`, Google will reject the token exchange request.
+   * Token exchange fails if the state or code_verifier values are lost between requests (potential issue with Cloud Run statelessness).
+
+2. **Callback URL Format Mismatch:**
+   * The callback URL string must be exactly the same in:
+     * Google OAuth console configuration
+     * `GOOGLE_REDIRECT_URI` environment variable
+     * The token exchange API call to Google
+   * Any difference, even trailing slashes, will result in the 400 error.
+
+3. **Multiple Code Usages:**
+   * OAuth authorization codes can only be used once.
+   * If something in the proxying or flow is resulting in multiple attempts to exchange the same code, subsequent attempts will fail.
+
+### 7.4 Recommended Next Steps
+
+1. **Add Enhanced Logging to Token Exchange:**
+   * Add detailed logging in `google_auth_router.py` -> `handle_oauth_callback` function:
+   ```python
+   # Log exact data being sent to Google token endpoint
+   logger.info(f"Token request data being sent to Google: {json.dumps(token_data)}")
+   
+   # After receiving error response, log detailed information
+   try:
+     error_response = e.response.json()
+     logger.error(f"Google token exchange error details: {json.dumps(error_response)}")
+   except:
+     logger.error(f"Raw error response: {e.response.text}")
+   ```
+
+2. **Dump and Log State Store:**
+   * At each step, log the state of the in-memory state store to verify it's persisting correctly:
+   ```python
+   logger.info(f"Current keys in state_store: {list(self.state_store.keys())}")
+   ```
+
+3. **Consider Disabling PKCE Temporarily:**
+   * For testing purposes, you can modify the OAuth flow to not use PKCE to see if that resolves the issue.
+   * This is for debugging only and should not be used in production.
+
+4. **Compare Approaches:**
+   * Look at other NodeJS/Python implementations of Google OAuth to see if there are any best practices we're missing.
+   * Check for common pitfalls with Google OAuth in stateless services.
+
+5. **Test Locally First:**
+   * Run the backend locally with the exact same settings to test whether the issue is Cloud Run specific.
+   * This will help isolate whether the problem is related to the stateless nature of Cloud Run. 

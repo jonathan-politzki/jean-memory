@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+cloud_env.yaml
 
 # Virtual environments
 .venv/
@@ -84,3 +85,6 @@ docker-compose.override.yml
 # Ignore the actual MCP configuration with secrets
 .cursor/mcp.json 
 backend/service.yaml 
+
+scripts/
+
