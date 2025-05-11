@@ -35,7 +35,7 @@ services:
       - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
       - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
-      - DEV_MODE=true
+      - DEV_MODE=false
     volumes:
       - ./backend:/app
       - /app/.venv
@@ -64,6 +64,8 @@ services:
     environment:
       - PORT=3005
       - BACKEND_URL=http://backend:8000
+      - NODE_ENV=production
+      - DEV_MODE=false
     volumes:
       - ./frontend:/usr/src/app
       - /usr/src/app/node_modules

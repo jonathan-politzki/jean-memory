@@ -1,18 +1,32 @@
 from fastapi import FastAPI, Request, HTTPException, Depends
 import logging
+import sys
+import os
 from typing import Any, Optional
 from fastapi.middleware.cors import CORSMiddleware  # Add CORS middleware
 from fastapi.responses import RedirectResponse, HTMLResponse # Import RedirectResponse and HTMLResponse
 
+# Configure logger
+logger = logging.getLogger(__name__)
+
+# Add backend directory to path if needed
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+    logger.info(f"Added {backend_dir} to sys.path")
+
 # Use absolute imports from the 'backend' root directory
-from .config import settings
-from .models import MCPRequest, MCPResponse, MCPResult, MCPStoreParams, MCPRetrieveParams
-from .middleware import verify_api_key
+from app.config import settings
+from app.models import MCPRequest, MCPResponse, MCPResult, MCPStoreParams, MCPRetrieveParams
+from app.middleware import verify_api_key
 # Import the database singleton instead of the class
 import database
 from database.context_storage import ContextDatabase  # Still import for type hints
 from routers.context_router import ContextRouter # Changed from ..routers
 from services.gemini_api import GeminiAPI # Changed from ..services
+
+# Development mode flag
+DEV_MODE = os.getenv("DEV_MODE", "false").lower() in ("true", "1", "t", "yes")
 
 # --- Logging Setup ---
 # Basic logging config - customize as needed
@@ -52,36 +66,36 @@ def create_app():
     async def startup_db_client():
         logger.info("Starting up application...")
         
-        # Initialize database if URL is provided
-        if settings.database_url:
-            logger.info(f"Initializing database connection to: {settings.database_url.replace('jean:jean_password', 'jean:****')}")
-            try:
-                # Use the database singleton instead of creating a new instance
-                db = await database.initialize_db(settings.database_url)
-                app.state.db = db  # Store singleton reference in app state
+        try:
+            # Initialize database connection
+            if settings.database_url:
+                logger.info(f"Initializing database connection to: {settings.database_url.replace(settings.database_url.split('@')[-1], '***')}")
+                db_instance = await database.initialize_db(settings.database_url)
+                app.state.db = db_instance
                 logger.info("Database connection established successfully")
-            except Exception as e:
-                logger.error(f"Failed to initialize database: {e}")
+            else:
+                logger.warning("No DATABASE_URL provided. Running with no database support.")
                 app.state.db = None
-        else:
-            logger.warning("No DATABASE_URL provided. Running with no database support.")
-            app.state.db = None
-        
-        # Initialize Gemini API client if API key is provided
-        if settings.gemini_api_key:
-            logger.info("Initializing Gemini API client...")
-            app.state.gemini_api = GeminiAPI(api_key=settings.gemini_api_key)
-        else:
-            logger.warning("No GEMINI_API_KEY provided. Running with no AI classification.")
-            app.state.gemini_api = None
-        
-        # Initialize context router with dependencies
-        app.state.context_router = ContextRouter(
-            db=app.state.db, 
-            gemini_api=app.state.gemini_api
-        )
-        
-        logger.info("Application startup sequence finished.")
+            
+            # Initialize Gemini API client if API key is provided
+            if settings.gemini_api_key:
+                logger.info("Initializing Gemini API client...")
+                app.state.gemini_api = GeminiAPI(api_key=settings.gemini_api_key)
+            else:
+                logger.warning("No GEMINI_API_KEY provided. Running with no AI classification.")
+                app.state.gemini_api = None
+            
+            # Initialize context router with dependencies
+            app.state.context_router = ContextRouter(
+                db=app.state.db, 
+                gemini_api=app.state.gemini_api
+            )
+            
+            logger.info("Application startup sequence finished.")
+            
+        except Exception as e:
+            logger.exception(f"Failed to initialize database: {e}")
+            logger.warning("Falling back to test mode due to database error.")
 
     # Cleanup on shutdown
     @app.on_event("shutdown")

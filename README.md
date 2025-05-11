@@ -191,3 +191,29 @@ For Google authentication to work, you need to set up the following:
 5.  **Configure MCP Client (Crucial for Tools):** Follow the steps in the "Integration with MCP Clients" section above to configure your client (e.g., Claude Desktop) to use the correct Python environment via the full path from `poetry env info --path`.
 6.  **Optional: Run Frontend:** If needed, `cd frontend && node server.js`.
 7.  **Optional: Run Backend API:** If needed, `cd backend && poetry run uvicorn app.main:app --reload --port 8000`.
+
+### Running in Production
+
+For production deployment, use Docker Compose with the production configuration:
+
+```bash
+# First, create a .env file with your production settings
+# (See scripts/production-env-example.env for required variables)
+
+# Then run the full stack in production mode
+docker-compose up -d
+
+# To view logs
+docker-compose logs -f
+
+# To stop all services
+docker-compose down
+```
+
+Before running in production, ensure you've configured:
+1. Real OAuth credentials for Google/GitHub
+2. Production API keys for Gemini/Claude 
+3. Proper database credentials
+4. SSL/TLS if deploying publicly
+
+The docker-compose.yml is configured to run in production mode with DEV_MODE=false, which disables mock authentication and test fallbacks.

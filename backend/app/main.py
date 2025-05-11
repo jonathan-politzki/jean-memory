@@ -1,6 +1,7 @@
 import uvicorn
 import logging
 import asyncio
+import sys
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, Header, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,37 +12,58 @@ import json
 import uuid
 from datetime import datetime
 
-# Load environment variables from .env file before other imports
-load_dotenv()
-
-from app.app import app # Import the app instance created by the factory
-from app.config import settings
-# Use the database singleton pattern
-import database
-from database.context_storage import ContextDatabase # Only for typing
-
-# Import MCP server from our jean_mcp package
-# from jean_mcp.server.mcp_server import mcp
-# from jean_mcp.server.mcp_config import router as mcp_config_router
-
-from .auth import verify_api_key, get_user_id
-from .routers.github_oauth_router import GitHubOAuthRouter
-from .routers.obsidian_router import ObsidianRouter
-from .routers.google_auth_router import GoogleAuthRouter
-from .gemini_api import GeminiAPI
-
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 logger = logging.getLogger(__name__)
 
-# Initialize database
-# db = Database()
+# Add backend directory to path if needed
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+    logger.info(f"Added {backend_dir} to sys.path")
+
+# Load environment variables before other imports
+load_dotenv()
+
+# App and configuration imports
+from app.app import app
+from app.config import settings
+
+# Import database modules
+import database
+from database.context_storage import ContextDatabase
+
+# Import utility modules
+from app.auth import verify_api_key, get_user_id
+from app.gemini_api import GeminiAPI
+
+# Import router modules 
+# First check if the "routes" module exists in the backend/app directory
+router_module_path = os.path.join(backend_dir, "app", "routers")
+if os.path.exists(router_module_path):
+    # Import from app.routers if it exists
+    from app.routers.github_oauth_router import GitHubOAuthRouter
+    from app.routers.obsidian_router import ObsidianRouter
+    from app.routers.google_auth_router import GoogleAuthRouter
+    logger.info("Imported routers from app.routers")
+else:
+    # Otherwise import from backend/routers
+    from routers.github_oauth_router import GitHubOAuthRouter
+    from routers.obsidian_router import ObsidianRouter
+    from routers.google_auth_router import GoogleAuthRouter
+    logger.info("Imported routers from routers module")
 
 # Initialize API services
 gemini_api = GeminiAPI(api_key=os.getenv("GEMINI_API_KEY"))
 
 # Initialize routers - Will be fully initialized in the startup event
 github_router = None
-obsidian_router = None  # Will be initialized after DB connection
-google_auth_router = None # Initialize as None globally
+obsidian_router = None
+google_auth_router = None
 
 @app.on_event("startup")
 async def startup_event():
@@ -61,14 +83,14 @@ async def startup_event():
         logger.info("Database initialization complete.")
         
         # Initialize the routers with the database connection
-        global github_router, obsidian_router, google_auth_router # Add google_auth_router
+        global github_router, obsidian_router, google_auth_router
         github_router = GitHubOAuthRouter(db=db_instance)
         logger.info("GitHub OAuth router initialized successfully.")
         
         obsidian_router = ObsidianRouter(db=db_instance, gemini_api=gemini_api)
         logger.info("Obsidian router initialized successfully.")
 
-        google_auth_router = GoogleAuthRouter(db=db_instance) # Initialize with db_instance
+        google_auth_router = GoogleAuthRouter(db=db_instance)
         logger.info("Google Auth router initialized successfully.")
         
         # Initialize other services if needed
