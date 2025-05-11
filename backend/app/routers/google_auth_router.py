@@ -30,13 +30,14 @@ class GoogleAuthRouter:
         # Check if essential config is missing
         if not self.client_id or not self.redirect_uri:
             logger.error(f"[get_oauth_url] Missing essential configuration! Client ID: {self.client_id}, Redirect URI: {self.redirect_uri}")
-            raise HTTPException(status_code=500, detail="Google OAuth client configuration error.")
+            raise HTTPException(status_code=500, detail="Google OAuth client ID not configured")
         
         # Create a state parameter to prevent CSRF
         state = str(uuid.uuid4())
         self.state_store[state] = user_id
 
         # Generate code verifier and challenge for PKCE
+        # Use a 64-character code verifier (was 28) to ensure compatibility with Google's requirements
         code_verifier = secrets.token_urlsafe(64)
         code_challenge = base64.urlsafe_b64encode(
             hashlib.sha256(code_verifier.encode()).digest()
@@ -44,6 +45,9 @@ class GoogleAuthRouter:
 
         # Store the code verifier for later
         self.state_store[f"{state}_verifier"] = code_verifier
+        
+        # DEBUG: Log current keys in state store (without exposing sensitive values)
+        logger.info(f"[get_oauth_url] Current keys in state_store: {list(self.state_store.keys())}")
 
         logger.info(f"[AUTH_DEBUG] Using redirect_uri for Google OAuth: {self.redirect_uri}")
 
@@ -70,6 +74,9 @@ class GoogleAuthRouter:
         """Handle the OAuth callback from Google"""
         # For development, make state validation optional
         dev_mode = os.getenv("DEV_MODE", "false").lower() == "true"
+        
+        # DEBUG: Log current keys in state store
+        logger.info(f"[handle_oauth_callback] Current keys in state_store: {list(self.state_store.keys())}")
         
         # Check if we've already processed this auth code (same code used multiple times)
         if code in self.processed_codes:
@@ -123,6 +130,15 @@ class GoogleAuthRouter:
                 token_data["code_verifier"] = code_verifier
                 
             logger.info(f"Exchanging code for token with redirect_uri: {self.redirect_uri}")
+            # Log the token request data (without exposing secrets)
+            safe_token_data = token_data.copy()
+            if "client_secret" in safe_token_data:
+                safe_token_data["client_secret"] = "***REDACTED***"
+            if "code" in safe_token_data:
+                safe_token_data["code"] = "***REDACTED***"
+            if "code_verifier" in safe_token_data:
+                safe_token_data["code_verifier"] = "***REDACTED***"
+            logger.info(f"Token request data being sent to Google: {json.dumps(safe_token_data)}")
             
             try:
                 async with httpx.AsyncClient() as client:
@@ -146,10 +162,13 @@ class GoogleAuthRouter:
             except httpx.HTTPStatusError as e:
                 error_details = "Unknown error"
                 try:
-                    error_details = e.response.json()
+                    error_response = e.response.json()
+                    logger.error(f"Google token exchange error details: {json.dumps(error_response)}")
+                    error_details = error_response
                 except Exception:
                     try:
                         error_details = e.response.text
+                        logger.error(f"Raw error response: {error_details}")
                     except Exception:
                         pass
                 
@@ -189,10 +208,13 @@ class GoogleAuthRouter:
         except httpx.HTTPStatusError as e:
             error_details = "Unknown error"
             try:
-                error_details = e.response.json()
+                error_response = e.response.json()
+                logger.error(f"Google token exchange error details: {json.dumps(error_response)}")
+                error_details = error_response
             except Exception:
                 try:
                     error_details = e.response.text
+                    logger.error(f"Raw error response: {error_details}")
                 except Exception:
                     pass
             
